@@ -13,6 +13,7 @@ from collections import defaultdict
 from datetime import date, timedelta
 
 N_WEEKS = 52  # 常に直近12ヶ月を対象にする
+LB_TO_KG = 0.45359237  # ポンド → キログラム
 
 # BodyPart(DBの名前) → ダッシュボードの部位キー・日本語ラベル・系列番号(色)
 # CARDIO(有酸素)は「部位別セット数」の積み上げには含めない(重量×回数の概念が薄いため)。
@@ -46,6 +47,33 @@ def _monday(d: date) -> date:
 
 def epley_e1rm(weight_kg: float, reps: int) -> float:
     return round(weight_kg * (1 + reps / 30) * 10) / 10
+
+
+def set_volume_kg(s: dict, e: dict) -> float:
+    """1セットが総挙上量に寄与する重さ(kg)を返す。
+
+    - WEIGHT_REPS(重量×回数の種目): 重量 × 回数。
+    - BODYWEIGHT_REPS(自重種目): 「追加重量」× 回数のみ。バックアップの weightKg には体重が
+      含まれており(懸垂 41.9kg = 体重 61.9 − アシスト 20 など)、そのまま足すと腹筋22回が
+      バーベル種目より重く見えてしまうため、外部負荷ぶんだけを数える。
+      アシスト(マイナスの追加重量)は 0 として扱う(挙上量がマイナスになるのを防ぐため)。
+    - 時間/距離種目: 0(重量の概念が無い)。
+    """
+    reps = s.get("reps")
+    if not reps:
+        return 0.0
+    rt = e.get("recordType")
+    if rt == "WEIGHT_REPS":
+        wkg = s.get("weightKg")
+        return wkg * reps if wkg is not None else 0.0
+    if rt == "BODYWEIGHT_REPS":
+        extra = s.get("weight")
+        if extra is None:
+            return 0.0
+        if s.get("unit") == "LB":
+            extra *= LB_TO_KG
+        return max(0.0, extra) * reps
+    return 0.0
 
 
 class Backup:
@@ -110,9 +138,10 @@ def build_data(data: dict, today: date | None = None) -> dict:
         wi = _week_index(weeks, d)
         wkg = s.get("weightKg")
         reps = s.get("reps")
-        # カレンダー: 総挙上量(重量×回数)。時間/距離種目は寄与しない
-        if wkg is not None and reps:
-            calendar[w["date"]] += wkg * reps
+        # カレンダー: 総挙上量。自重種目は追加重量ぶんのみ、時間/距離種目は寄与しない
+        vol = set_volume_kg(s, e)
+        if vol:
+            calendar[w["date"]] += vol
         # 部位別セット数(6分類のみ)
         part = BODYPART_MAP.get(e["bodyPart"])
         if part and wi is not None:
@@ -368,8 +397,9 @@ def _recent_workouts(bk: Backup, limit=5):
         vol = 0.0
         for s in sets:
             by_ex[s["exerciseId"]].append(s)
-            if s.get("weightKg") is not None and s.get("reps"):
-                vol += s["weightKg"] * s["reps"]
+            e = bk.ex(s["exerciseId"])
+            if e:
+                vol += set_volume_kg(s, e)
         exs = []
         for ex_id, ss in by_ex.items():
             e = bk.ex(ex_id)
