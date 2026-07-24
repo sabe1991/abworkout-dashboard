@@ -175,7 +175,7 @@
   .chart-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
   .chart-title { font-size: 14px; font-weight: 600; }
   .chart-sub { font-size: 11.5px; color: var(--muted); }
-  .head-tools { display: flex; align-items: center; gap: 10px; }
+  .head-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
   .legend { display: flex; gap: 13px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); }
   .legend .key { display: inline-flex; align-items: center; gap: 6px; }
   .lk-line { width: 14px; height: 0; border-top: 2.5px solid; border-radius: 2px; display: inline-block; }
@@ -313,10 +313,15 @@
     <div class="card" style="margin-bottom:14px">
       <div class="chart-head">
         <div>
-          <div class="chart-title">重量の推移(直近12ヶ月)</div>
+          <div class="chart-title">重量の推移(<span id="wtitle-strength">直近12ヶ月</span>)</div>
           <div class="chart-sub">週ごとのトップセット(いちばん重いセット)と、そこから換算した推定1RM</div>
         </div>
         <div class="head-tools">
+          <div class="range-seg" id="strength-range" role="group" aria-label="表示期間">
+            <button type="button" data-weeks="13" aria-pressed="false">3ヶ月</button>
+            <button type="button" data-weeks="26" aria-pressed="false">6ヶ月</button>
+            <button type="button" data-weeks="52" aria-pressed="true">12ヶ月</button>
+          </div>
           <select class="exsel" id="exsel" aria-label="種目を選択">
             <option value="bench" selected>ベンチプレス</option>
             <option value="squat">スクワット</option>
@@ -691,13 +696,6 @@
   const firstVal = (a) => { for (const v of a) if (v != null) return v; return null; };
   const lastVal = (a) => { for (let i = a.length - 1; i >= 0; i--) if (a[i] != null) return a[i]; return null; };
   const G = DATA.goal || {};
-  function fmtRest(sec) {
-    if (sec == null) return "";
-    const m = Math.floor(sec / 60), s = sec % 60;
-    if (m && s) return `${m}分${s}秒`;
-    if (m) return `${m}分`;
-    return `${s}秒`;
-  }
 
   // ---- 線画アイコン(絵文字は使わず、currentColor で色が付く SVG を使う) ----
   // 24×24 のストローク(輪郭線)アイコン。Lucide 由来の素直なパス。
@@ -847,10 +845,7 @@
       (day.exercises || []).forEach((e) => {
         const nm = document.createElement("span"); nm.className = "exname"; nm.textContent = e.name;
         const sv = document.createElement("span"); sv.className = "exsets";
-        let txt = e.summary || "";
-        if (e.targetRir != null) txt += ` ・ RIR${e.targetRir}`;
-        if (e.restSec != null) txt += ` ・ 休憩 ${fmtRest(e.restSec)}`;
-        sv.textContent = txt;
+        sv.textContent = e.summary || "";
         grid.appendChild(nm); grid.appendChild(sv);
       });
       card.appendChild(grid);
@@ -917,11 +912,12 @@
     });
   }
 
-  const state = { exercise: "bench", bodyWeeks: N_WEEKS };
+  const state = { exercise: "bench", bodyWeeks: N_WEEKS, strengthWeeks: N_WEEKS };
   function renderAll() {
-    const k = N_WEEKS, ds = weeks.slice(-k);
+    const k = state.strengthWeeks, ds = weeks.slice(-k);
     const ex = exSeries(state.exercise);
     const w = ex.top.slice(-k), rm = ex.e1rm.slice(-k);
+    $("#wtitle-strength").textContent = monthsLabel(k);
 
     lineChart("#chart-strength", { dates: ds, height: 300, aria: ex.name + "の重量推移",
       series: [ { label: "トップセット重量", cls: 1, values: w, unit: "kg", area: true }, { label: "推定1RM", cls: 2, values: rm, unit: "kg" } ] });
@@ -958,10 +954,11 @@
     buildTable("#table-volume", [{ label: "月" }].concat(PARTS.map((p) => ({ label: p.label, num: true })), [{ label: "計", num: true }]),
       mv.rows.map((r, i) => { const total = PARTS.reduce((a, p) => a + (r[p.key] || 0), 0); return [mv.labels[i]].concat(PARTS.map((p) => String(r[p.key] || 0)), [String(total)]); }));
 
-    renderCalendar(k);
+    renderCalendar(N_WEEKS);   // カレンダーは「1年の継続」を見る図なので12ヶ月固定
   }
 
-  // からだ(体組成)は期間を切り替えられる。トレーニング記録側は12ヶ月固定。
+  // 重量の推移・からだ(体組成)は期間を切り替えられる。
+  // 部位別セット数(月ごと)とカレンダーは、縮めると読み取れる情報が減るだけなので12ヶ月固定。
   const monthsLabel = (k) => k >= 52 ? "直近12ヶ月" : k === 26 ? "直近6ヶ月" : k === 13 ? "直近3ヶ月" : `直近${k}週`;
   function renderBody(k) {
     const ds = weeks.slice(-k), bw = bodyW.slice(-k), bf = bodyF.slice(-k), lbl = monthsLabel(k);
@@ -1021,13 +1018,16 @@
     box.appendChild(txt);
   }
 
-  $("#body-range").querySelectorAll("button").forEach((b) => {
-    b.addEventListener("click", () => {
-      state.bodyWeeks = Number(b.dataset.weeks);
-      $("#body-range").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-      renderBody(state.bodyWeeks);
-    });
-  });
+  // 期間切り替え(3/6/12ヶ月)。押されたボタンだけ aria-pressed="true" にして、対象を描き直す。
+  function wireRange(sel, apply) {
+    const btns = $(sel).querySelectorAll("button");
+    btns.forEach((b) => b.addEventListener("click", () => {
+      btns.forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      apply(Number(b.dataset.weeks));
+    }));
+  }
+  wireRange("#body-range", (k) => { state.bodyWeeks = k; renderBody(k); });
+  wireRange("#strength-range", (k) => { state.strengthWeeks = k; renderAll(); });
 
   const lg = $("#legend-volume");
   PARTS.forEach((p) => { const s = document.createElement("span"); s.className = "key"; const i = document.createElement("i"); i.className = "lk-rect bg" + p.cls; s.appendChild(i); s.appendChild(document.createTextNode(p.label)); lg.appendChild(s); });
