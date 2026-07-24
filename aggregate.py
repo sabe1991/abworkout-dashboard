@@ -29,7 +29,8 @@ BODYPART_MAP = {
 PART_LABEL = {k: v[1] for k, v in BODYPART_MAP.items()}
 PART_CLS = {v[0]: v[2] for v in BODYPART_MAP.values()}
 
-# ヒーローの BIG3。実データの種目名に合わせて「名前に含む語」で拾う(バーベル優先)。
+# BIG3(ベンチ・スクワット・デッドリフト)。実データの種目名に合わせて「名前に含む語」で拾う
+# (バーベル優先)。「成長の証拠」セクションの推定1RM合計カードで使う。
 BIG3 = [
     ("bench", "ベンチプレス", ["バーベルベンチプレス", "ベンチプレス"]),
     ("squat", "スクワット",   ["バーベルスクワット", "スクワット"]),
@@ -168,7 +169,7 @@ def build_data(data: dict, today: date | None = None) -> dict:
                 pr[e["id"]] = {"weightKg": wkg, "reps": reps, "e1rm": None,
                                "date": w["date"], "name": e["name"], "recordType": rt}
 
-    # --- ヒーロー用 BIG3 の種目ID解決 ---
+    # --- BIG3 の種目ID解決(「成長の証拠」の推定1RM合計カード用) ---
     big3_ids = {}
     for key, _label, needles in BIG3:
         found = None
@@ -193,10 +194,10 @@ def build_data(data: dict, today: date | None = None) -> dict:
             series.append(last)
         return series
     big3_series_each = {k: ex_e1rm_series(v) for k, v in big3_ids.items()}
-    hero_series = []
+    big3_series = []
     for wi in range(N_WEEKS):
         vals = [big3_series_each[k][wi] for k in big3_ids if big3_series_each[k][wi] is not None]
-        hero_series.append(round(sum(vals), 1) if vals else None)
+        big3_series.append(round(sum(vals), 1) if vals else None)
 
     # --- 月次ボリューム(積み上げバー用): 週セット数を月にまとめる ---
     monthly = {}
@@ -242,12 +243,53 @@ def build_data(data: dict, today: date | None = None) -> dict:
     # --- 直近ワークアウト(最新5件) ---
     recent = _recent_workouts(bk, limit=5)
 
-    # --- ヒーロー: BIG3 合計・前年差・お祝い・次の予定 ---
-    hero_vals = [v for v in hero_series if v is not None]
-    hero_total = hero_vals[-1] if hero_vals else None
+    # --- ヒーロー: 総挙上量(今週・今月) ---
+    # calendar(日別の総挙上量)から期間で切り出す。比較相手は「先週/先月の同じ時点まで」に
+    # そろえる。進行中の今週・今月を、まるごと終わった先週・先月と比べると必ず負けて見えるため。
+    workout_dates = {_pdate(w["date"]) for w in bk.workouts.values()}
+
+    def _lifted(d_from: date, d_to: date) -> float:
+        """d_from 〜 d_to(両端を含む)の総挙上量 kg。"""
+        return round(sum(v for k, v in calendar.items() if d_from <= _pdate(k) <= d_to), 1)
+
+    def _days(d_from: date, d_to: date) -> int:
+        """d_from 〜 d_to(両端を含む)にワークアウトを行った日数。"""
+        return sum(1 for d in workout_dates if d_from <= d <= d_to)
+
+    week_from = _monday(anchor)
+    prev_week_from = week_from - timedelta(days=7)
+    month_from = anchor.replace(day=1)
+    prev_month_to_full = month_from - timedelta(days=1)          # 先月の末日
+    prev_month_from = prev_month_to_full.replace(day=1)
+    # 先月の「同じ日」まで。先月が短くて同じ日が無い場合(例: 3/31 に対する 2月)は末日で止める。
+    prev_month_to = prev_month_from + timedelta(days=min(anchor.day, prev_month_to_full.day) - 1)
+    year_from = date(anchor.year, 1, 1)
+    prev_year_from = date(anchor.year - 1, 1, 1)
+    try:                              # 昨年の同じ月日まで(2/29 は昨年に無いので 2/28 に丸める)
+        prev_year_to = anchor.replace(year=anchor.year - 1)
+    except ValueError:
+        prev_year_to = date(anchor.year - 1, 2, 28)
+    lifted = {
+        "week": _lifted(week_from, anchor),
+        "weekPrev": _lifted(prev_week_from, prev_week_from + timedelta(days=anchor.weekday())),
+        "weekDays": _days(week_from, anchor),
+        "month": _lifted(month_from, anchor),
+        "monthPrev": _lifted(prev_month_from, prev_month_to),
+        "monthDays": _days(month_from, anchor),
+        "monthLabel": f"{anchor.month}月",
+        "year": _lifted(year_from, anchor),
+        "yearPrev": _lifted(prev_year_from, prev_year_to),
+        "yearDays": _days(year_from, anchor),
+        "yearLabel": f"{anchor.year}年",
+        "asOf": anchor.isoformat(),
+    }
+
+    # --- BIG3 推定1RM合計(「成長の証拠」カード用)・お祝い・次の予定 ---
+    big3_vals = [v for v in big3_series if v is not None]
+    big3_total = big3_vals[-1] if big3_vals else None
     # 差は「12ヶ月前(対象期間の最初の週)」との比較。当時データが無ければ None(=表示は「—」)。
-    hero_base = hero_series[0]
-    hero_delta = round(hero_total - hero_base, 1) if (hero_total is not None and hero_base is not None) else None
+    big3_base = big3_series[0]
+    big3_delta = round(big3_total - big3_base, 1) if (big3_total is not None and big3_base is not None) else None
     # お祝い: 一番の看板記録(推定1RM 最大の重量系PR)。新規アプリでは「最初の記録=全部PR」に
     # なってしまうため「最新の更新」ではなく「最も強い記録」を出す。
     weighted_pr = [p for p in pr.values() if p.get("e1rm") is not None]
@@ -288,7 +330,7 @@ def build_data(data: dict, today: date | None = None) -> dict:
     return {
         "weeks": week_iso,
         "big3Ids": big3_ids,
-        "heroSeries": hero_series,
+        "big3Series": big3_series,
         "perExercise": {str(ex_id): [per_ex_week.get(ex_id, {}).get(wi) for wi in range(N_WEEKS)]
                         for ex_id in per_ex_week},
         "exerciseNames": {str(e["id"]): e["name"] for e in bk.exercises.values()},
@@ -306,8 +348,9 @@ def build_data(data: dict, today: date | None = None) -> dict:
                      reverse=True),
         "recent": recent,
         "anchor": anchor.isoformat(),
-        "heroTotal": hero_total,
-        "heroDelta": hero_delta,
+        "lifted": lifted,
+        "big3Total": big3_total,
+        "big3Delta": big3_delta,
         "celebrate": celebrate,
         "nextUp": next_up,
         "aiPlan": ai,
@@ -424,9 +467,12 @@ if __name__ == "__main__":
     with open(path, encoding="utf-8") as f:
         d = build_data(json.load(f))
     print(f"対象週: {d['weeks'][0]} 〜 {d['weeks'][-1]} ({len(d['weeks'])}週)")
+    lf = d['lifted']
+    print(f"総挙上量: 今週 {lf['week']:,.0f}kg({lf['weekDays']}日) / 先週同曜日まで {lf['weekPrev']:,.0f}kg")
+    print(f"          今月 {lf['month']:,.0f}kg({lf['monthDays']}日) / 先月同日まで {lf['monthPrev']:,.0f}kg")
+    print(f"          今年 {lf['year']:,.0f}kg({lf['yearDays']}日) / 昨年同日まで {lf['yearPrev']:,.0f}kg")
     print(f"BIG3 種目ID: {d['big3Ids']}")
-    last_hero = next((v for v in reversed(d['heroSeries']) if v is not None), None)
-    print(f"BIG3 推定1RM合計(最新): {last_hero} kg")
+    print(f"BIG3 推定1RM合計(最新): {d['big3Total']} kg(12ヶ月差 {d['big3Delta']})")
     print(f"今週の回数: {d['thisWeekCount']} / 目標 {d['goal']['weeklyTargetCount']}")
     print(f"体重(週平均・直近で非None): "
           f"{next((v for v in reversed(d['weightSeries']) if v is not None), None)} kg / "
