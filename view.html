@@ -241,6 +241,9 @@
   .st { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; border-radius: 9px; padding: 0 9px; line-height: 18px; }
   .st-done { color: var(--good); background: var(--good-bg); }
   .st-pending { color: var(--ink-2); border: 1px solid var(--border); }
+  /* 絵文字の代わりに使う線画アイコン。色は currentColor(親の文字色)に追従する */
+  .svgico { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
+  .svgico svg { display: block; }
   .chip-next { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--surface); background: var(--accent); padding: 1px 8px; border-radius: 9px; }
   .chip-new { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--good); background: var(--good-bg); padding: 1px 7px; border-radius: 9px; vertical-align: 2px; margin-left: 5px; }
   .menu-note { font-size: 12px; color: var(--ink-2); background: var(--surface-2); border-radius: 8px; padding: 8px 12px; margin-top: 12px; }
@@ -694,6 +697,23 @@
     return `${s}秒`;
   }
 
+  // ---- 線画アイコン(絵文字は使わず、currentColor で色が付く SVG を使う) ----
+  // 24×24 のストローク(輪郭線)アイコン。Lucide 由来の素直なパス。
+  const ICONS = {
+    award:   '<circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>',
+    check:   '<path d="M20 6 9 17l-5-5"/>',
+    note:    '<path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10l6-6V5a2 2 0 0 0-2-2z"/><path d="M15 21v-5a1 1 0 0 1 1-1h5"/>',
+    trendUp: '<path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/>',
+    scale:   '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+    flame:   '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  };
+  function iconEl(name, size) {
+    const s = size || 16;
+    const span = document.createElement("span"); span.className = "svgico";
+    span.innerHTML = `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
+    return span;
+  }
+
   // ---- HERO(強さの現在地 + お祝い + 次の予定) ----
   function renderHero() {
     $("#hero-total").textContent = DATA.heroTotal == null ? "—" : (Math.round(DATA.heroTotal * 10) / 10).toLocaleString();
@@ -705,7 +725,7 @@
     const c = DATA.celebrate;
     if (c) {
       const box = document.createElement("div"); box.className = "celebrate";
-      const medal = document.createElement("span"); medal.className = "medal"; medal.textContent = "🏅"; box.appendChild(medal);
+      const medal = iconEl("award", 24); medal.classList.add("medal"); medal.style.color = "var(--good)"; box.appendChild(medal);
       const inner = document.createElement("div");
       const lab = document.createElement("div"); lab.className = "c-label"; lab.textContent = "いちばんの記録";
       const main = document.createElement("div"); main.className = "c-main";
@@ -816,7 +836,7 @@
       h.appendChild(dlab);
       if (day.date && day.label) { const kind = document.createElement("span"); kind.className = "log-kind"; kind.textContent = day.label; h.appendChild(kind); }
       const st = document.createElement("span");
-      if (day.status === "DONE" || day.status === "COMPLETED") { st.className = "st st-done"; st.textContent = "✓ 完了"; }
+      if (day.status === "DONE" || day.status === "COMPLETED") { st.className = "st st-done"; st.appendChild(iconEl("check", 13)); st.appendChild(document.createTextNode("完了")); }
       else { st.className = "st st-pending"; st.textContent = "予定"; }
       h.appendChild(st);
       if (di === firstPending) { const chip = document.createElement("span"); chip.className = "chip-next"; chip.textContent = "次回"; h.appendChild(chip); }
@@ -832,7 +852,7 @@
         grid.appendChild(nm); grid.appendChild(sv);
       });
       card.appendChild(grid);
-      if (day.note) { const note = document.createElement("div"); note.className = "log-note"; note.textContent = "🧠 " + day.note; card.appendChild(note); }
+      if (day.note) { const note = document.createElement("div"); note.className = "log-note"; note.appendChild(iconEl("note", 13)); note.appendChild(document.createTextNode(" " + day.note)); card.appendChild(note); }
       host.appendChild(card);
     });
   }
@@ -906,7 +926,7 @@
     // インサイト: 記録がある週だけで前回との差を見る(記録が少なくても破綻しない)
     {
       const box = $("#insight-strength"); box.textContent = "";
-      const ico = document.createElement("span"); ico.className = "ico"; ico.textContent = "📈"; box.appendChild(ico);
+      const ico = iconEl("trendUp", 15); ico.classList.add("ico"); box.appendChild(ico);
       const txt = document.createElement("span");
       const present = []; rm.forEach((v, i) => { if (v != null) present.push(v); });
       if (present.length === 0) {
@@ -960,8 +980,8 @@
       series: [{ label: "体脂肪率", cls: 1, values: bf, unit: "%", area: true }],
       target: tgtF != null ? { v: tgtF, label: `目標 ${trimN(tgtF)}` } : null });
 
-    renderBodyInsight("#insight-weight", "⚖️", "体重", bw, tgtW, "kg", lbl);
-    renderBodyInsight("#insight-fat", "🔥", "体脂肪率", bf, tgtF, "%", lbl);
+    renderBodyInsight("#insight-weight", "scale", "体重", bw, tgtW, "kg", lbl);
+    renderBodyInsight("#insight-fat", "flame", "体脂肪率", bf, tgtF, "%", lbl);
 
     buildTable("#table-weight", [{ label: "週" }, { label: "体重", num: true }, { label: "体脂肪率", num: true }],
       ds.map((d, i) => [fmtMD(d) + "週", bw[i] == null ? "—" : bw[i] + "kg", bf[i] == null ? "—" : bf[i] + "%"])
@@ -970,9 +990,9 @@
 
   // 体重・体脂肪の自動コメント。目標と現在値の差から「増やす/減らす」どちらの向きかを判断するため、
   // 増量(STRENGTH)でも減量でも正しい言い回しになる。
-  function renderBodyInsight(sel, icon, name, series, target, unit, lbl) {
+  function renderBodyInsight(sel, iconName, name, series, target, unit, lbl) {
     const box = $(sel); box.textContent = "";
-    const ico = document.createElement("span"); ico.className = "ico"; ico.textContent = icon; box.appendChild(ico);
+    const ico = iconEl(iconName, 15); ico.classList.add("ico"); box.appendChild(ico);
     const txt = document.createElement("span");
     const first = firstVal(series), last = lastVal(series);
     if (last == null) {
