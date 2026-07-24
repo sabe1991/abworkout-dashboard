@@ -1059,14 +1059,17 @@
     entries.forEach((en) => { if (en.isIntersecting) { const id = "#" + en.target.id; navLinks.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === id)); } });
   }, { rootMargin: "-45% 0px -50% 0px" });
   document.querySelectorAll("section.block").forEach((s) => spy.observe(s));
-  // ナビはアンカー(#sec-…)への遷移をやめ、JS で対象へスクロールする。
+  // ページ内アンカー(#sec-… 等)への遷移をやめ、JS で対象へスクロールする。
   // Streamlit 埋め込み(srcdoc の iframe)では素のアンカー遷移が iframe 全体の再読み込みを
-  // 引き起こし、全チャートの再描画やちらつきの原因になるため、既定動作を止める。
-  navLinks.forEach((a) => a.addEventListener("click", (e) => {
+  // 引き起こし、全チャートの再描画やちらつき(更新ボタンの増殖)の原因になるため、既定動作を止める。
+  // イベント委譲にして、ナビだけでなくヒーローの「今週のメニューへ」など動的生成リンクもまとめて拾う。
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (!a) return;
     const href = a.getAttribute("href") || "";
-    const target = href[0] === "#" ? document.getElementById(href.slice(1)) : null;
+    const target = href.length > 1 ? document.getElementById(href.slice(1)) : null;
     if (target) { e.preventDefault(); target.scrollIntoView({ behavior: "smooth", block: "start" }); }
-  }));
+  });
 
   let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(renderAll, 160); });
 
