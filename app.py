@@ -62,7 +62,7 @@ def _github_cfg() -> dict | None:
     return dict(cfg)
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=60, show_spinner=False)
 def fetch_backup_from_github(cfg: dict) -> dict:
     """GitHub Contents API でバックアップ JSON を取得する。失敗時は例外を投げる。"""
     url = f"https://api.github.com/repos/{cfg['repo']}/contents/{cfg.get('path', 'latest.json')}"
@@ -91,12 +91,8 @@ def load_backup() -> tuple[dict, str]:
 
 
 # --- 画面 ---
-col_a, col_b = st.columns([1, 0.12])
-with col_b:
-    if st.button("更新", icon=":material/refresh:", help="GitHub から最新の記録を取り直します", use_container_width=True):
-        fetch_backup_from_github.clear()
-        st.rerun()
-
+# 最新化はブラウザの再読み込みで行う(キャッシュは 60 秒で切れるため、リロードすればすぐ最新になる)。
+# 画面上の「更新」ボタンは廃止した(リロードと役割が重複し、個人用途では不要なため)。
 backup, source = load_backup()
 if source != "GitHub":
     st.info(
