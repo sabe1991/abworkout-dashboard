@@ -474,9 +474,10 @@
   const NS = "http://www.w3.org/2000/svg";
 
   // ---- 実データ(Python の aggregate.build_data の出力)を受け取る ----
-  const DATA = window.__DATA__;
+  // 万一データが入っていなくても、ここで例外を出して画面全体を空にしないよう空オブジェクトで受ける。
+  const DATA = window.__DATA__ || {};
   const N_WEEKS = 52;
-  const weeks = DATA.weeks.map((s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); });
+  const weeks = (DATA.weeks || []).map((s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); });
   const fmtMD = (d) => `${d.getMonth() + 1}/${d.getDate()}`;
   const fmtYMD = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const e1rm = (w, r) => Math.round(w * (1 + r / 30) * 10) / 10;
@@ -779,7 +780,7 @@
     { kg: 400,       name: "自動販売機",     counter: "台ぶん", icon: "vending", note: "飲料の自動販売機 約400kg" },
     { kg: 1500,      name: "乗用車",         counter: "台ぶん", icon: "car", note: "普通乗用車 約1.5t" },
     { kg: 11000,     name: "路線バス",       counter: "台ぶん", icon: "bus", note: "大型路線バス 約11t" },
-    { kg: 41000,     name: "旅客機",         counter: "機ぶん", icon: "plane", note: "ボーイング737の機体重量 約41t" },
+    { kg: 142000,    name: "大型旅客機",     counter: "機ぶん", icon: "plane", note: "エアバス A350-900 の運航空虚重量 約142t" },
     { kg: 4000000,   name: "東京タワー",     counter: "基ぶん", icon: "tower", note: "東京タワーの鉄骨 約4,000t" },
   ];
   const EQUIV_ICONS = {
@@ -803,14 +804,12 @@
     while (i > 0 && kg / EQUIV_UNITS[i].kg < 0.8) i--;
     return EQUIV_UNITS[i];
   }
+  // 既存の iconEl と同じく「span を作って innerHTML に <svg> ごと入れる」方式にする。
+  // SVG 要素そのものへの innerHTML 代入は対応していないブラウザがあるため使わない。
   function unitIcon(name, size) {
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("width", size); svg.setAttribute("height", size);
-    svg.setAttribute("fill", "none"); svg.setAttribute("stroke", "currentColor");
-    svg.setAttribute("stroke-width", "1.8"); svg.setAttribute("stroke-linecap", "round");
-    svg.setAttribute("stroke-linejoin", "round"); svg.setAttribute("aria-hidden", "true");
-    svg.innerHTML = EQUIV_ICONS[name] || "";
-    return svg;
+    const span = document.createElement("span"); span.className = "svgico";
+    span.innerHTML = `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${EQUIV_ICONS[name] || ""}</svg>`;
+    return span;
   }
   /** 総挙上量 kg を「アイコンの行 + ◯◯N台ぶん」に描画する。size はアイコンの1辺(px)。
       アイコンは左から1個ずつ現れる(積み上がっていく感じを出すため)。 */
@@ -1307,13 +1306,27 @@
     $("#sync-text").textContent = lastW ? `最新の記録 ${fmtMDW(lastW)}` : "記録を読み込みました";
   }
 
-  renderHero();
-  renderBig3();
-  renderKpis();
-  renderAiPlan();
-  renderPR();
-  renderRecent();
-  renderAll();
+  // 各ブロックは独立して描く。1か所で例外が出ても、そこから先の描画まで巻き添えで
+  // 止まって「画面じゅうが空」になることがないよう、1つずつ囲って失敗を切り離す。
+  // 失敗したブロックはコンソールに出し、画面には「表示できませんでした」と残す。
+  function safeRender(name, hostSel, fn) {
+    try { fn(); } catch (err) {
+      console.error("[dashboard] " + name + " の描画に失敗しました", err);
+      const host = hostSel ? $(hostSel) : null;
+      if (host && !host.textContent.trim()) {
+        const p = document.createElement("div"); p.className = "chart-sub";
+        p.textContent = "この部分を表示できませんでした(" + name + ")。";
+        host.appendChild(p);
+      }
+    }
+  }
+  safeRender("ヒーロー", ".hero", renderHero);
+  safeRender("BIG3", ".big3", renderBig3);
+  safeRender("KPI", "#kpis", renderKpis);
+  safeRender("AI週間プラン", "#ai-plan-card", renderAiPlan);
+  safeRender("自己ベスト", null, renderPR);
+  safeRender("直近のワークアウト", null, renderRecent);
+  safeRender("グラフ", null, renderAll);
 
   // iframe に埋め込まれたとき、中身の実際の高さに iframe を合わせる(内側スクロールや余白を防ぐ)。
   // Streamlit の components.html は srcdoc の iframe(親と同一オリジン)なので frameElement を直接調整できる。
