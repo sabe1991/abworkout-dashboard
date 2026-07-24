@@ -28,7 +28,7 @@ import build_view
 HERE = os.path.dirname(os.path.abspath(__file__))
 SAMPLE = os.path.join(HERE, "..", "sample-data", "latest.json")
 
-st.set_page_config(page_title="AB Workout ダッシュボード", page_icon="🏋️", layout="wide")
+st.set_page_config(page_title="AB Workout ダッシュボード", page_icon=":material/fitness_center:", layout="wide")
 
 # Streamlit 標準の余白・ヘッダーを詰めて、ダッシュボードを画面いっぱいに見せる
 st.markdown(
@@ -93,7 +93,7 @@ def load_backup() -> tuple[dict, str]:
 # --- 画面 ---
 col_a, col_b = st.columns([1, 0.12])
 with col_b:
-    if st.button("🔄 更新", help="GitHub から最新の記録を取り直します", use_container_width=True):
+    if st.button("更新", icon=":material/refresh:", help="GitHub から最新の記録を取り直します", use_container_width=True):
         fetch_backup_from_github.clear()
         st.rerun()
 
@@ -103,7 +103,7 @@ if source != "GitHub":
         "現在は " + source + " を表示しています。"
         "本番の記録を出すには、GitHub 連携の設定(secrets)が必要です。"
         "詳しくは「デプロイ手順.md」を参照してください。",
-        icon="ℹ️",
+        icon=":material/info:",
     )
 
 html = build_view.build_html(backup)
