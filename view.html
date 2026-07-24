@@ -1,0 +1,1068 @@
+<title>AB Workout ダッシュボード(モックアップ)</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f0eee8;
+    --surface: #f7f5f0;
+    --surface-2: #eeece5;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #dedbd2;
+    --axis: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+    --s4: #eda100; --s5: #e87ba4; --s6: #008300;
+    --good: #006300;
+    --good-bg: #e2efe2;
+    --accent: #2a78d6;
+    --track: #d8d4ca;
+    --cal0: #e7e4dc;
+    --cal1: #cde2fb; --cal2: #9ec5f4; --cal3: #5598e7; --cal4: #2a78d6; --cal5: #184f95;
+    --chip-new-bg: #e7f0fc;
+    --hero-grad-a: #efece4;
+    --hero-grad-b: #e6efe6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --surface-2: #242423;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --border: rgba(255, 255, 255, 0.10);
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+      --s4: #c98500; --s5: #d55181; --s6: #008300;
+      --good: #0ca30c;
+      --good-bg: #16331a;
+      --accent: #3987e5;
+      --track: #333331;
+      --cal0: #262624;
+      --cal1: #104281; --cal2: #1c5cab; --cal3: #2a78d6; --cal4: #5598e7; --cal5: #9ec5f4;
+      --chip-new-bg: #16324f;
+      --hero-grad-a: #201f1d;
+      --hero-grad-b: #14211a;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-2: #242423;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    --s4: #c98500; --s5: #d55181; --s6: #008300;
+    --good: #0ca30c;
+    --good-bg: #16331a;
+    --accent: #3987e5;
+    --track: #333331;
+    --cal0: #262624;
+    --cal1: #104281; --cal2: #1c5cab; --cal3: #2a78d6; --cal4: #5598e7; --cal5: #9ec5f4;
+    --chip-new-bg: #16324f;
+    --hero-grad-a: #201f1d;
+    --hero-grad-b: #14211a;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 24px 20px 72px; }
+
+  /* ---------- header ---------- */
+  header.site { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+  .site .brand { font-size: 15px; font-weight: 600; letter-spacing: 0.02em; color: var(--ink-2); }
+  .site .brand b { color: var(--ink); font-weight: 700; }
+  .head-right { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; }
+  .sync { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11.5px; }
+  .sync .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); display: inline-block; }
+  .theme-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .theme-seg button { font: inherit; font-size: 11.5px; color: var(--ink-2); background: var(--surface); border: none; padding: 3px 11px; cursor: pointer; }
+  .theme-seg button + button { border-left: 1px solid var(--border); }
+  .theme-seg button:hover { color: var(--ink); }
+  .theme-seg button[aria-pressed="true"] { color: var(--surface); background: var(--ink); font-weight: 600; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .theme-seg button:focus-visible { outline-offset: -2px; }
+
+  .range-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .range-seg button { font: inherit; font-size: 11.5px; color: var(--ink-2); background: var(--surface); border: none; padding: 3px 11px; cursor: pointer; }
+  .range-seg button + button { border-left: 1px solid var(--border); }
+  .range-seg button:hover { color: var(--ink); }
+  .range-seg button[aria-pressed="true"] { color: var(--surface); background: var(--ink); font-weight: 600; }
+  .range-seg button:focus-visible { outline-offset: -2px; }
+  .sec-head .range-seg { margin-left: auto; align-self: center; }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    background: linear-gradient(135deg, var(--hero-grad-a), var(--hero-grad-b));
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 22px 24px; margin-bottom: 14px;
+    display: grid; grid-template-columns: 1fr auto; gap: 20px 28px; align-items: center;
+  }
+  .hero-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .hero-big { font-size: 52px; font-weight: 800; line-height: 1.02; letter-spacing: -0.01em; margin: 6px 0 2px; }
+  .hero-big .unit { font-size: 22px; font-weight: 600; color: var(--ink-2); margin-left: 4px; }
+  .hero-delta { font-size: 14px; font-weight: 600; }
+  .hero-delta .up { color: var(--good); }
+  .hero-sub { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; }
+  .hero-spark { align-self: center; }
+  .hero-right { display: flex; flex-direction: column; gap: 10px; align-items: stretch; min-width: 240px; }
+  .celebrate {
+    background: var(--good-bg); border-radius: 12px; padding: 12px 14px;
+    display: flex; gap: 11px; align-items: center;
+  }
+  .celebrate .medal { font-size: 26px; line-height: 1; }
+  .celebrate .c-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--good); }
+  .celebrate .c-main { font-size: 16px; font-weight: 700; margin-top: 1px; }
+  .celebrate .c-sub { font-size: 11.5px; color: var(--ink-2); }
+  .nextup { border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; background: var(--surface); }
+  .nextup .n-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .nextup .n-main { font-size: 15px; font-weight: 700; margin-top: 2px; }
+  .nextup .n-sub { font-size: 11.5px; color: var(--ink-2); }
+  @media (max-width: 760px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero-spark { justify-self: start; }
+    .hero-right { min-width: 0; }
+    .hero-big { font-size: 42px; }
+  }
+
+  /* ---------- demoted KPI row ---------- */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 22px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 13px 15px; }
+  .kpi .label { font-size: 11.5px; color: var(--ink-2); margin-bottom: 3px; }
+  .kpi .row { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+  .kpi .value { font-size: 24px; font-weight: 700; line-height: 1.2; }
+  .kpi .value small { font-size: 14px; font-weight: 500; color: var(--ink-2); }
+  .kpi .delta { font-size: 11.5px; color: var(--ink-2); margin-top: 1px; }
+  .kpi .delta .good { color: var(--good); font-weight: 600; }
+  .meter { margin-top: 9px; height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+  .meter > span { display: block; height: 100%; border-radius: 3px; background: var(--good); }
+
+  /* ---------- sticky in-page nav ---------- */
+  .nav { position: sticky; top: 0; z-index: 20; background: var(--page); border-bottom: 1px solid var(--grid); margin: 0 -20px 22px; padding: 0 20px; }
+  .nav ul { list-style: none; display: flex; gap: 2px; margin: 0; padding: 0; overflow-x: auto; }
+  .nav a { display: inline-block; font-size: 13.5px; color: var(--ink-2); text-decoration: none; padding: 10px 14px; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .nav a:hover { color: var(--ink); }
+  .nav a.active { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
+
+  /* ---------- sections ---------- */
+  section.block { scroll-margin-top: 56px; margin-bottom: 30px; }
+  .sec-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+  .sec-head h2 { font-size: 17px; font-weight: 700; margin: 0; letter-spacing: 0.01em; }
+  .sec-head .sec-note { font-size: 12px; color: var(--muted); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+
+  .chart-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .chart-title { font-size: 14px; font-weight: 600; }
+  .chart-sub { font-size: 11.5px; color: var(--muted); }
+  .head-tools { display: flex; align-items: center; gap: 10px; }
+  .legend { display: flex; gap: 13px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .lk-line { width: 14px; height: 0; border-top: 2.5px solid; border-radius: 2px; display: inline-block; }
+  .lk-rect { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .c1 { color: var(--s1); } .c2 { color: var(--s2); }
+  .bg1 { background: var(--s1); } .bg2 { background: var(--s2); } .bg3 { background: var(--s3); }
+  .bg4 { background: var(--s4); } .bg5 { background: var(--s5); } .bg6 { background: var(--s6); }
+  .ghost-btn { font: inherit; font-size: 11.5px; color: var(--ink-2); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 2px 9px; cursor: pointer; }
+  .ghost-btn:hover { border-color: var(--axis); color: var(--ink); }
+  select.exsel { font: inherit; font-size: 13px; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 5px 10px; }
+
+  /* ---------- insight callout ---------- */
+  .insight { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--ink-2); background: var(--surface-2); border-radius: 8px; padding: 8px 11px; margin: 4px 0 12px; }
+  .insight .ico { flex: 0 0 auto; margin-top: 1px; }
+  .insight b { color: var(--ink); font-weight: 700; }
+
+  /* ---------- svg chart parts ---------- */
+  .chart-box { position: relative; }
+  svg text { font-family: inherit; }
+  .gridline { stroke: var(--grid); stroke-width: 1; }
+  .axisline { stroke: var(--axis); stroke-width: 1; }
+  .ticktext { fill: var(--muted); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+  .endlabel { fill: var(--ink); font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .targetline { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 3; }
+  .targettext { fill: var(--muted); font-size: 10.5px; }
+  .line1 { stroke: var(--s1); } .line2 { stroke: var(--s2); }
+  .fill1 { fill: var(--s1); } .fill2 { fill: var(--s2); } .fill3 { fill: var(--s3); }
+  .fill4 { fill: var(--s4); } .fill5 { fill: var(--s5); } .fill6 { fill: var(--s6); }
+  .dotring { stroke: var(--surface); stroke-width: 2; }
+  .crosshair { stroke: var(--axis); stroke-width: 1; }
+  .seg { transition: filter 0.1s; }
+  .seg:hover { filter: brightness(1.12); }
+  @media (prefers-reduced-motion: reduce) { .seg { transition: none; } }
+
+  .tip { position: absolute; pointer-events: none; z-index: 5; display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 3px 14px rgba(0,0,0,0.16); padding: 8px 11px; font-size: 12px; min-width: 130px; }
+  .tip .tdate { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+  .tip .trow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .tip .tname { color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+  .tip .tval { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+
+  .table-wrap { overflow-x: auto; display: none; }
+  .table-wrap.show { display: block; }
+  .chart-box.hide { display: none; }
+  table.data { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  table.data th { text-align: left; color: var(--ink-2); font-weight: 600; font-size: 11.5px; border-bottom: 1px solid var(--axis); padding: 6px 10px 5px; white-space: nowrap; }
+  table.data td { border-bottom: 1px solid var(--grid); padding: 5px 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.data td.num, table.data th.num { text-align: right; }
+
+  /* ---------- calendar ---------- */
+  .cal-scroll { overflow-x: auto; padding-bottom: 4px; }
+  .cal-grid { display: grid; gap: 3px; width: max-content; }
+  .cal-cell { width: 15px; height: 15px; border-radius: 3px; background: var(--cal0); border: none; padding: 0; cursor: default; }
+  .cal-cell.lv1 { background: var(--cal1); } .cal-cell.lv2 { background: var(--cal2); }
+  .cal-cell.lv3 { background: var(--cal3); } .cal-cell.lv4 { background: var(--cal4); } .cal-cell.lv5 { background: var(--cal5); }
+  .cal-daylabel { font-size: 9.5px; color: var(--muted); width: 22px; height: 15px; line-height: 15px; }
+  .cal-month { font-size: 10px; color: var(--muted); height: 14px; }
+  .cal-goal { font-size: 10px; color: var(--muted); text-align: center; height: 16px; line-height: 16px; font-variant-numeric: tabular-nums; }
+  .cal-goal.met { color: var(--good); font-weight: 700; }
+  .cal-legend { display: flex; align-items: center; gap: 4px; font-size: 10.5px; color: var(--muted); margin-top: 8px; }
+  .cal-legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+
+  /* ---------- AI plan / logs ---------- */
+  .st { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; border-radius: 9px; padding: 0 9px; line-height: 18px; }
+  .st-done { color: var(--good); background: var(--good-bg); }
+  .st-pending { color: var(--ink-2); border: 1px solid var(--border); }
+  .chip-next { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--surface); background: var(--accent); padding: 1px 8px; border-radius: 9px; }
+  .chip-new { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--good); background: var(--good-bg); padding: 1px 7px; border-radius: 9px; vertical-align: 2px; margin-left: 5px; }
+  .menu-note { font-size: 12px; color: var(--ink-2); background: var(--surface-2); border-radius: 8px; padding: 8px 12px; margin-top: 12px; }
+  .log-card { border-top: 1px solid var(--grid); padding: 12px 2px 4px; margin-top: 12px; }
+  .log-card:first-of-type { border-top: none; margin-top: 0; padding-top: 2px; }
+  .log-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .log-date { font-weight: 700; font-size: 13.5px; }
+  .log-kind { font-size: 11px; color: var(--ink-2); background: var(--page); border: 1px solid var(--border); border-radius: 9px; padding: 0 8px; }
+  .log-meta { font-size: 11.5px; color: var(--muted); }
+  .log-ex { display: grid; grid-template-columns: minmax(96px, 160px) 1fr; gap: 2px 12px; margin-top: 6px; font-size: 12.5px; }
+  .log-ex .exname { color: var(--ink-2); }
+  .log-ex .exsets { font-variant-numeric: tabular-nums; }
+  .log-note { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+  .pr-est { color: var(--ink-2); }
+
+  footer.mock { margin-top: 30px; color: var(--muted); font-size: 11.5px; text-align: center; }
+</style>
+
+<div class="wrap">
+  <header class="site">
+    <div class="brand"><b>AB Workout</b> ダッシュボード</div>
+    <div class="head-right">
+      <div class="sync" id="sync-line"><span class="dot"></span><span id="sync-text">読み込み中…</span></div>
+      <div class="theme-seg" role="group" aria-label="表示テーマ">
+        <button type="button" data-mode="auto" aria-pressed="true">自動</button>
+        <button type="button" data-mode="light" aria-pressed="false">ライト</button>
+        <button type="button" data-mode="dark" aria-pressed="false">ダーク</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO: 強さの現在地 -->
+  <div class="hero">
+    <div class="hero-main">
+      <div class="hero-eyebrow">BIG3 推定1RM合計 ・ 直近12ヶ月</div>
+      <div class="hero-big"><span id="hero-total">—</span><span class="unit">kg</span></div>
+      <div class="hero-delta"><span class="up" id="hero-delta">—</span></div>
+      <div class="hero-sub" id="hero-sub">ベンチプレス・スクワット・デッドリフトの推定1RM(1回だけ挙げられる最大重量の推定値)の合計</div>
+    </div>
+    <svg class="hero-spark" id="hero-spark" width="230" height="60" aria-hidden="true"></svg>
+    <div class="hero-right" id="hero-right" style="grid-column: 1 / -1;"></div>
+  </div>
+
+  <!-- 控えめKPI -->
+  <div class="kpis" id="kpis"></div>
+
+  <!-- sticky nav -->
+  <nav class="nav" aria-label="セクション">
+    <ul>
+      <li><a href="#sec-now" class="active">今週</a></li>
+      <li><a href="#sec-growth">成長の証拠</a></li>
+      <li><a href="#sec-stack">積み上げ</a></li>
+      <li><a href="#sec-body">からだ</a></li>
+    </ul>
+  </nav>
+
+  <!-- ② 今週 -->
+  <section class="block" id="sec-now">
+    <div class="sec-head"><h2>今週</h2><span class="sec-note">AIが組んだ週間メニューと進捗</span></div>
+    <div class="card" id="ai-plan-card"></div>
+  </section>
+
+  <!-- ③ 成長の証拠 -->
+  <section class="block" id="sec-growth">
+    <div class="sec-head"><h2>成長の証拠</h2><span class="sec-note">強くなった量を追う</span></div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">重量の推移(直近12ヶ月)</div>
+          <div class="chart-sub">週ごとのトップセット(いちばん重いセット)と、そこから換算した推定1RM</div>
+        </div>
+        <div class="head-tools">
+          <select class="exsel" id="exsel" aria-label="種目を選択">
+            <option value="bench" selected>ベンチプレス</option>
+            <option value="squat">スクワット</option>
+            <option value="deadlift">デッドリフト</option>
+          </select>
+          <div class="legend">
+            <span class="key"><i class="lk-line c1"></i>トップセット重量</span>
+            <span class="key"><i class="lk-line c2"></i>推定1RM</span>
+          </div>
+          <button class="ghost-btn" data-toggle="strength">表で見る</button>
+        </div>
+      </div>
+      <div class="insight" id="insight-strength"></div>
+      <div class="chart-box" id="chart-strength"></div>
+      <div class="table-wrap" id="table-strength"></div>
+    </div>
+
+    <div class="card">
+      <div class="chart-head"><div class="chart-title">自己ベスト(PR)一覧</div></div>
+      <div class="table-wrap show">
+        <table class="data">
+          <thead><tr><th>種目</th><th>記録</th><th class="num">推定1RM</th><th>達成日</th></tr></thead>
+          <tbody id="pr-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="chart-head"><div><div class="chart-title">直近のワークアウト</div><div class="chart-sub">最新5件を表示</div></div></div>
+      <div id="recent-body"></div>
+    </div>
+  </section>
+
+  <!-- ④ 積み上げ -->
+  <section class="block" id="sec-stack">
+    <div class="sec-head"><h2>積み上げ</h2><span class="sec-note">続けてきた量とバランス</span></div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">部位別セット数(月ごと・直近12ヶ月)</div>
+          <div class="chart-sub">ワークセットのみを集計 ・ 週単位の細かい変動はホバー/表で</div>
+        </div>
+        <div class="head-tools">
+          <div class="legend" id="legend-volume"></div>
+          <button class="ghost-btn" data-toggle="volume">表で見る</button>
+        </div>
+      </div>
+      <div class="chart-box" id="chart-volume"></div>
+      <div class="table-wrap" id="table-volume"></div>
+    </div>
+    <div class="card">
+      <div class="chart-head"><div><div class="chart-title">実施カレンダー(直近12ヶ月)</div><div class="chart-sub">色の濃さ = その日の総挙上量(重量 × 回数の合計) ・ 下段は週の実施回数と目標(3回)の達成状況 ・ 横スクロールで過去分を表示</div></div></div>
+      <div class="cal-scroll"><div id="calendar"></div></div>
+      <div class="cal-legend">少<i style="background:var(--cal0)"></i><i style="background:var(--cal1)"></i><i style="background:var(--cal2)"></i><i style="background:var(--cal3)"></i><i style="background:var(--cal4)"></i><i style="background:var(--cal5)"></i>多</div>
+    </div>
+  </section>
+
+  <!-- ⑤ からだ -->
+  <section class="block" id="sec-body">
+    <div class="sec-head">
+      <h2>からだ</h2><span class="sec-note">体重・体脂肪と目標</span>
+      <div class="range-seg" id="body-range" role="group" aria-label="表示期間">
+        <button type="button" data-weeks="13" aria-pressed="false">3ヶ月</button>
+        <button type="button" data-weeks="26" aria-pressed="false">6ヶ月</button>
+        <button type="button" data-weeks="52" aria-pressed="true">12ヶ月</button>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="chart-head">
+          <div><div class="chart-title">体重(kg・<span id="wtitle-weight">直近12ヶ月</span>)</div><div class="chart-sub" id="chart-sub-weight">週平均</div></div>
+          <div class="head-tools"><button class="ghost-btn" data-toggle="weight">表で見る</button></div>
+        </div>
+        <div class="insight" id="insight-weight"></div>
+        <div class="chart-box" id="chart-weight"></div>
+        <div class="table-wrap" id="table-weight"></div>
+      </div>
+      <div class="card">
+        <div class="chart-head"><div><div class="chart-title">体脂肪率(%・<span id="wtitle-fat">直近12ヶ月</span>)</div><div class="chart-sub" id="chart-sub-fat">週平均</div></div></div>
+        <div class="insight" id="insight-fat"></div>
+        <div class="chart-box" id="chart-fat"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="mock">AB Workout の記録から生成した閲覧専用ビューです。入力は Android アプリから行います。</footer>
+</div>
+
+<!-- ビルド時にこの下の window.__DATA__ が実データ(aggregate.build_data の出力)へ置き換わる。 -->
+<script id="__data__">window.__DATA__ = window.__DATA__ || {"weeks":[],"big3Ids":{},"heroSeries":[],"perExercise":{},"exerciseNames":{},"volumeWeek":[],"monthlyLabels":[],"monthlyRows":[],"partOrder":[],"partLabel":{},"calendar":{},"weightSeries":[],"fatSeries":[],"goal":{},"thisWeekCount":0,"pr":[],"recent":[],"anchor":null,"heroTotal":null,"heroDelta":null,"celebrate":null,"nextUp":null,"aiPlan":null,"latestWeight":null,"weightDelta":null,"streak":0};</script>
+<script>
+(() => {
+  "use strict";
+  const NS = "http://www.w3.org/2000/svg";
+
+  // ---- 実データ(Python の aggregate.build_data の出力)を受け取る ----
+  const DATA = window.__DATA__;
+  const N_WEEKS = 52;
+  const weeks = DATA.weeks.map((s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); });
+  const fmtMD = (d) => `${d.getMonth() + 1}/${d.getDate()}`;
+  const fmtYMD = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const e1rm = (w, r) => Math.round(w * (1 + r / 30) * 10) / 10;
+
+  // 種目セレクタの値 → aggregate の big3 キー
+  const SEL2KEY = { bench: "bench", squat: "squat", deadlift: "dead" };
+  const SEL_LABEL = { bench: "ベンチプレス", squat: "スクワット", deadlift: "デッドリフト" };
+  function exSeries(selKey) {
+    const k = SEL2KEY[selKey] || selKey;
+    const exId = DATA.big3Ids[k];
+    const name = (exId != null && DATA.exerciseNames[String(exId)]) || SEL_LABEL[selKey] || selKey;
+    const cells = (exId != null && DATA.perExercise[String(exId)]) || new Array(N_WEEKS).fill(null);
+    return { name, top: cells.map((c) => (c ? c.top : null)), e1rm: cells.map((c) => (c ? c.e1rm : null)) };
+  }
+
+  const bodyW = DATA.weightSeries;   // null(未測定の週)を含みうる
+  const bodyF = DATA.fatSeries;
+
+  const PARTS = [
+    { key: "chest", label: "胸",   cls: 1 },
+    { key: "back",  label: "背中", cls: 2 },
+    { key: "legs",  label: "脚",   cls: 3 },
+    { key: "sh",    label: "肩",   cls: 4 },
+    { key: "arms",  label: "腕",   cls: 5 },
+    { key: "core",  label: "体幹", cls: 6 },
+  ];
+  const volume = DATA.volumeWeek;
+
+  // カレンダー: 週×曜日(月〜日)の総挙上量。DATA.calendar は 日付→総挙上量 の辞書。
+  const calendar = weeks.map((mon) => {
+    const row = new Array(7).fill(0);
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(mon); day.setDate(day.getDate() + d);
+      row[d] = DATA.calendar[fmtYMD(day)] || 0;
+    }
+    return row;
+  });
+
+  function monthlyVolume() {
+    return { labels: DATA.monthlyLabels.map((s) => Number(s.split("-")[1]) + "月"), rows: DATA.monthlyRows };
+  }
+
+  const $ = (s) => document.querySelector(s);
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function niceTicks(min, max, n) {
+    const span = max - min || 1;
+    const step0 = span / n;
+    const mag = Math.pow(10, Math.floor(Math.log10(step0)));
+    let step = mag;
+    for (const m of [1, 2, 2.5, 5, 10]) { if (mag * m >= step0) { step = mag * m; break; } }
+    const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step;
+    const ticks = [];
+    for (let v = lo; v <= hi + 1e-9; v += step) ticks.push(Math.round(v * 100) / 100);
+    return ticks;
+  }
+  function makeTip(box) { const t = document.createElement("div"); t.className = "tip"; box.appendChild(t); return t; }
+  function showTip(tip, box, x, y, dateStr, rows) {
+    tip.textContent = "";
+    const d = document.createElement("div"); d.className = "tdate"; d.textContent = dateStr; tip.appendChild(d);
+    rows.forEach((r) => {
+      const row = document.createElement("div"); row.className = "trow";
+      const name = document.createElement("span"); name.className = "tname";
+      if (r.cls) { const key = document.createElement("i"); key.className = "lk-line c" + r.cls; key.style.borderTopColor = "currentColor"; name.appendChild(key); }
+      name.appendChild(document.createTextNode(r.label));
+      const val = document.createElement("span"); val.className = "tval"; val.textContent = r.value;
+      row.appendChild(name); row.appendChild(val); tip.appendChild(row);
+    });
+    tip.style.display = "block";
+    const bw = box.clientWidth, tw = tip.offsetWidth;
+    let left = x + 14; if (left + tw > bw - 4) left = x - tw - 14;
+    tip.style.left = Math.max(4, left) + "px"; tip.style.top = Math.max(4, y - 10) + "px";
+  }
+
+  function lineChart(boxSel, cfg) {
+    const box = $(boxSel); box.textContent = "";
+    const W = Math.max(560, box.clientWidth || 900), H = cfg.height || 300;
+    const P = { l: 46, r: 64, t: 14, b: 30 };
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img", "aria-label": cfg.aria || "" }, null);
+    box.appendChild(svg);
+    const n = cfg.series[0].values.length;
+    let vals = cfg.series.flatMap((s) => s.values).filter((v) => v != null);
+    if (cfg.target) vals = vals.concat(cfg.target.v);
+    if (!vals.length) vals = [0, 1];
+    const ticks = niceTicks(Math.min(...vals), Math.max(...vals), 5);
+    const ymin = ticks[0], ymax = ticks[ticks.length - 1];
+    const X = (i) => P.l + (n === 1 ? 0 : (i * (W - P.l - P.r)) / (n - 1));
+    const Y = (v) => P.t + (1 - (v - ymin) / (ymax - ymin)) * (H - P.t - P.b);
+    ticks.forEach((v) => {
+      el("line", { x1: P.l, x2: W - P.r, y1: Y(v), y2: Y(v), class: "gridline" }, svg);
+      el("text", { x: P.l - 8, y: Y(v) + 3.5, "text-anchor": "end", class: "ticktext" }, svg).textContent = v;
+    });
+    el("line", { x1: P.l, x2: W - P.r, y1: H - P.b, y2: H - P.b, class: "axisline" }, svg);
+    const step = Math.ceil(n / 6);
+    for (let i = 0; i < n; i += step) el("text", { x: X(i), y: H - P.b + 16, "text-anchor": "middle", class: "ticktext" }, svg).textContent = fmtMD(cfg.dates[i]);
+    if (cfg.target) {
+      el("line", { x1: P.l, x2: W - P.r, y1: Y(cfg.target.v), y2: Y(cfg.target.v), class: "targetline" }, svg);
+      el("text", { x: W - P.r + 6, y: Y(cfg.target.v) + 3.5, class: "targettext" }, svg).textContent = cfg.target.label;
+    }
+    cfg.series.forEach((s) => {
+      // present(値がある)週だけを対象に。欠測(null)はまたいで線を切る。
+      const pts = [];
+      s.values.forEach((v, i) => { if (v != null) pts.push([i, v]); });
+      if (s.area && pts.length) {
+        const first = pts[0][0], lastI = pts[pts.length - 1][0];
+        const d0 = pts.map(([i, v], k) => `${k ? "L" : "M"}${X(i)},${Y(v)}`).join("")
+          + `L${X(lastI)},${H - P.b}L${X(first)},${H - P.b}Z`;
+        el("path", { d: d0, class: "fill" + s.cls, opacity: 0.1 }, svg);
+      }
+      // 線は隣り合う present 点のみ結ぶ(欠測をまたぐ区間は描かない)
+      let d = "";
+      s.values.forEach((v, i) => {
+        if (v == null) return;
+        const prev = i > 0 ? s.values[i - 1] : null;
+        d += `${prev != null ? "L" : "M"}${X(i)},${Y(v)}`;
+      });
+      if (d) el("path", { d, fill: "none", class: "line" + s.cls, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+      // present 点それぞれに小さな点(記録が少ないときでも見えるように)
+      pts.forEach(([i, v]) => el("circle", { cx: X(i), cy: Y(v), r: 2.6, class: `fill${s.cls}` }, svg));
+      if (pts.length) {
+        const [li, lv] = pts[pts.length - 1];
+        el("circle", { cx: X(li), cy: Y(lv), r: 4.5, class: `fill${s.cls} dotring` }, svg);
+        el("text", { x: Math.min(X(li) + 10, W - P.r + 2), y: Y(lv) + 4, class: "endlabel" }, svg).textContent = lv + (s.unit || "");
+      }
+    });
+    const cross = el("line", { y1: P.t, y2: H - P.b, class: "crosshair", visibility: "hidden" }, svg);
+    const hoverDots = cfg.series.map((s) => el("circle", { r: 4.5, class: `fill${s.cls} dotring`, visibility: "hidden" }, svg));
+    const tip = makeTip(box);
+    const overlay = el("rect", { x: P.l, y: P.t, width: W - P.l - P.r, height: H - P.t - P.b, fill: "transparent", tabindex: 0 }, svg);
+    let curIdx = -1;
+    function focusIdx(i, clientX) {
+      curIdx = i; const px = X(i);
+      cross.setAttribute("x1", px); cross.setAttribute("x2", px); cross.setAttribute("visibility", "visible");
+      cfg.series.forEach((s, k) => {
+        const v = s.values[i];
+        if (v == null) { hoverDots[k].setAttribute("visibility", "hidden"); return; }
+        hoverDots[k].setAttribute("cx", px); hoverDots[k].setAttribute("cy", Y(v)); hoverDots[k].setAttribute("visibility", "visible");
+      });
+      const rect = box.getBoundingClientRect();
+      const bx = clientX !== undefined ? clientX - rect.left : (px / W) * box.clientWidth;
+      showTip(tip, box, bx, 24, fmtMD(cfg.dates[i]) + "週", cfg.series.map((s) => ({ label: s.label, cls: s.cls, value: s.values[i] == null ? "—" : s.values[i] + (s.unit || "") })));
+    }
+    function clear() { cross.setAttribute("visibility", "hidden"); hoverDots.forEach((d) => d.setAttribute("visibility", "hidden")); tip.style.display = "none"; curIdx = -1; }
+    overlay.addEventListener("pointermove", (ev) => {
+      const rect = svg.getBoundingClientRect();
+      const sx = ((ev.clientX - rect.left) / rect.width) * W;
+      const i = Math.max(0, Math.min(n - 1, Math.round(((sx - P.l) / (W - P.l - P.r)) * (n - 1))));
+      focusIdx(i, ev.clientX);
+    });
+    overlay.addEventListener("pointerleave", clear);
+    overlay.addEventListener("focus", () => focusIdx(n - 1));
+    overlay.addEventListener("blur", clear);
+    overlay.addEventListener("keydown", (ev) => {
+      if (ev.key === "ArrowLeft" || ev.key === "ArrowRight") { ev.preventDefault(); const d = ev.key === "ArrowLeft" ? -1 : 1; focusIdx(Math.max(0, Math.min(n - 1, (curIdx < 0 ? n - 1 : curIdx) + d))); }
+    });
+  }
+
+  function stackedBar(boxSel, labels, rows) {
+    const box = $(boxSel); box.textContent = "";
+    const W = Math.max(560, box.clientWidth || 900), H = 300;
+    const P = { l: 44, r: 14, t: 14, b: 30 };
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img", "aria-label": "部位別セット数の積み上げバー" }, null);
+    box.appendChild(svg);
+    const tip = makeTip(box);
+    const n = rows.length;
+    const totals = rows.map((r) => PARTS.reduce((a, p) => a + (r[p.key] || 0), 0));
+    const ticks = niceTicks(0, Math.max(...totals) || 1, 4);
+    const ymax = ticks[ticks.length - 1];
+    const slot = (W - P.l - P.r) / n, bw = Math.min(30, slot * 0.62);
+    const Y = (v) => P.t + (1 - v / ymax) * (H - P.t - P.b);
+    ticks.forEach((v) => {
+      el("line", { x1: P.l, x2: W - P.r, y1: Y(v), y2: Y(v), class: "gridline" }, svg);
+      el("text", { x: P.l - 8, y: Y(v) + 3.5, "text-anchor": "end", class: "ticktext" }, svg).textContent = v;
+    });
+    el("line", { x1: P.l, x2: W - P.r, y1: H - P.b, y2: H - P.b, class: "axisline" }, svg);
+    rows.forEach((r, i) => {
+      const cx = P.l + slot * i + slot / 2;
+      el("text", { x: cx, y: H - P.b + 16, "text-anchor": "middle", class: "ticktext" }, svg).textContent = labels[i];
+      let acc = 0;
+      const partsHere = PARTS.filter((p) => r[p.key] > 0);
+      partsHere.forEach((p, k) => {
+        const v = r[p.key], y0 = Y(acc), y1 = Y(acc + v);
+        const gap = k === 0 ? 0 : 2, h = Math.max(1, (y0 - y1) - gap), y = y1, x = cx - bw / 2;
+        const shape = el("rect", { x, y, width: bw, height: h, class: `fill${p.cls} seg` }, svg);
+        shape.addEventListener("pointermove", (ev) => {
+          const rect = box.getBoundingClientRect();
+          showTip(tip, box, ev.clientX - rect.left, ev.clientY - rect.top - 8, labels[i] + "(計 " + totals[i] + "セット)", [{ label: p.label, cls: p.cls, value: v + "セット" }]);
+        });
+        shape.addEventListener("pointerleave", () => { tip.style.display = "none"; });
+        acc += v;
+      });
+    });
+  }
+
+  function renderCalendar(nWeeks) {
+    const host = $("#calendar"); host.textContent = "";
+    const cal = calendar.slice(-nWeeks), ws = weeks.slice(-nWeeks);
+    const grid = document.createElement("div"); grid.className = "cal-grid";
+    grid.style.gridTemplateColumns = `22px repeat(${nWeeks}, 15px)`;
+    grid.appendChild(Object.assign(document.createElement("span"), { className: "cal-month" }));
+    let prevM = -1;
+    ws.forEach((d) => { const s = document.createElement("span"); s.className = "cal-month"; if (d.getMonth() !== prevM) { s.textContent = (d.getMonth() + 1) + "月"; prevM = d.getMonth(); } grid.appendChild(s); });
+    const tip = makeTip(host.parentElement); host.parentElement.style.position = "relative";
+    const DAYS = ["月", "火", "水", "木", "金", "土", "日"];
+    const vmax = Math.max(...cal.flat().filter((v) => v > 0), 1);
+    DAYS.forEach((dl, di) => {
+      const lab = document.createElement("span"); lab.className = "cal-daylabel"; lab.textContent = di % 2 === 0 ? dl : ""; grid.appendChild(lab);
+      cal.forEach((row, wi) => {
+        const v = row[di]; const cell = document.createElement("button"); cell.type = "button";
+        const lv = v === 0 ? 0 : Math.min(5, 1 + Math.floor((v / vmax) * 4.999));
+        cell.className = "cal-cell" + (lv ? " lv" + lv : "");
+        const d = new Date(ws[wi]); d.setDate(d.getDate() + di);
+        cell.setAttribute("aria-label", fmtYMD(d) + (v ? ` 総挙上量 ${v.toLocaleString()}kg` : " 休み"));
+        cell.addEventListener("pointermove", (ev) => {
+          const rect = host.parentElement.getBoundingClientRect();
+          showTip(tip, host.parentElement, ev.clientX - rect.left, ev.clientY - rect.top - 6, fmtMD(d) + "(" + DAYS[di] + ")", [{ label: "総挙上量", value: v ? v.toLocaleString() + "kg" : "—" }]);
+        });
+        cell.addEventListener("pointerleave", () => { tip.style.display = "none"; });
+        grid.appendChild(cell);
+      });
+    });
+    grid.appendChild(Object.assign(document.createElement("span"), { className: "cal-goal" }));
+    cal.forEach((row) => { const c = row.filter((v) => v > 0).length; const s = document.createElement("span"); s.className = "cal-goal" + (c >= 3 ? " met" : ""); s.textContent = c; grid.appendChild(s); });
+    host.appendChild(grid);
+  }
+
+  function sparkline(svg, vals, opt) {
+    svg.textContent = "";
+    const W = +svg.getAttribute("width"), H = +svg.getAttribute("height"), p = opt.pad || 5;
+    // 欠測(null)を除いた実データ点のみで描く。1点しか無ければ点だけ、0点なら何も描かない。
+    const pts = [];
+    vals.forEach((v, i) => { if (v != null) pts.push([i, v]); });
+    if (!pts.length) return;
+    const present = pts.map(([, v]) => v);
+    const min = Math.min(...present), max = Math.max(...present), n = vals.length;
+    const X = (i) => p + (n <= 1 ? 0 : (i * (W - p * 2 - 6)) / (n - 1));
+    const Y = (v) => p + (1 - (v - min) / (max - min || 1)) * (H - p * 2);
+    if (opt.area && pts.length > 1) {
+      const d0 = pts.map(([i, v], k) => `${k ? "L" : "M"}${X(i)},${Y(v)}`).join("")
+        + `L${X(pts[pts.length - 1][0])},${H - p}L${X(pts[0][0])},${H - p}Z`;
+      el("path", { d: d0, fill: opt.color, opacity: 0.12 }, svg);
+    }
+    if (pts.length > 1) {
+      const d = pts.map(([i, v], k) => `${k ? "L" : "M"}${X(i)},${Y(v)}`).join("");
+      el("path", { d, fill: "none", stroke: opt.color, "stroke-width": opt.width || 2, "stroke-linecap": "round", "stroke-linejoin": "round" }, svg);
+    }
+    const [li, lv] = pts[pts.length - 1];
+    el("circle", { cx: X(li), cy: Y(lv), r: 3.5, fill: opt.color, stroke: "var(--surface)", "stroke-width": 2 }, svg);
+  }
+
+  function buildTable(sel, headers, rows) {
+    const wrap = $(sel); wrap.textContent = "";
+    const t = document.createElement("table"); t.className = "data";
+    const thead = document.createElement("thead"); const trh = document.createElement("tr");
+    headers.forEach((h) => { const th = document.createElement("th"); th.textContent = h.label; if (h.num) th.className = "num"; trh.appendChild(th); });
+    thead.appendChild(trh); t.appendChild(thead);
+    const tb = document.createElement("tbody");
+    rows.forEach((r) => { const tr = document.createElement("tr"); r.forEach((c, i) => { const td = document.createElement("td"); td.textContent = c; if (headers[i].num) td.className = "num"; tr.appendChild(td); }); tb.appendChild(tr); });
+    t.appendChild(tb); wrap.appendChild(t);
+  }
+
+  // ---- 表示用の小さなユーティリティ ----
+  const WD = ["日", "月", "火", "水", "木", "金", "土"];
+  const parseYMD = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+  const fmtMDW = (s) => { const d = parseYMD(s); return `${d.getMonth() + 1}/${d.getDate()}(${WD[d.getDay()]})`; };
+  const trimN = (x) => (x == null ? "—" : String(Math.round(x * 10) / 10));
+  const firstVal = (a) => { for (const v of a) if (v != null) return v; return null; };
+  const lastVal = (a) => { for (let i = a.length - 1; i >= 0; i--) if (a[i] != null) return a[i]; return null; };
+  const G = DATA.goal || {};
+  function fmtRest(sec) {
+    if (sec == null) return "";
+    const m = Math.floor(sec / 60), s = sec % 60;
+    if (m && s) return `${m}分${s}秒`;
+    if (m) return `${m}分`;
+    return `${s}秒`;
+  }
+
+  // ---- HERO(強さの現在地 + お祝い + 次の予定) ----
+  function renderHero() {
+    $("#hero-total").textContent = DATA.heroTotal == null ? "—" : (Math.round(DATA.heroTotal * 10) / 10).toLocaleString();
+    const dl = DATA.heroDelta;
+    $("#hero-delta").textContent = dl == null ? "記録が増えると変化を表示します" : `▲ ${dl >= 0 ? "+" : ""}${dl}kg(12ヶ月)`;
+    sparkline($("#hero-spark"), DATA.heroSeries, { color: "var(--accent)", width: 2.5, area: true, pad: 7 });
+
+    const host = $("#hero-right"); host.textContent = ""; host.style.display = "";
+    const c = DATA.celebrate;
+    if (c) {
+      const box = document.createElement("div"); box.className = "celebrate";
+      const medal = document.createElement("span"); medal.className = "medal"; medal.textContent = "🏅"; box.appendChild(medal);
+      const inner = document.createElement("div");
+      const lab = document.createElement("div"); lab.className = "c-label"; lab.textContent = "いちばんの記録";
+      const main = document.createElement("div"); main.className = "c-main";
+      main.textContent = `${c.name} ${trimN(c.weightKg)}kg × ${c.reps}`;
+      const sub = document.createElement("div"); sub.className = "c-sub";
+      sub.textContent = (c.e1rm != null ? `推定1RM ${c.e1rm}kg ・ ` : "") + `${fmtMDW(c.date)} 達成`;
+      inner.appendChild(lab); inner.appendChild(main); inner.appendChild(sub); box.appendChild(inner);
+      host.appendChild(box);
+    }
+    const nu = DATA.nextUp;
+    if (nu) {
+      const box = document.createElement("div"); box.className = "nextup";
+      const lab = document.createElement("div"); lab.className = "n-label"; lab.textContent = "次のトレーニング";
+      const main = document.createElement("div"); main.className = "n-main";
+      main.textContent = (nu.date ? fmtMDW(nu.date) + " " : "") + (nu.label || "");
+      const sub = document.createElement("div"); sub.className = "n-sub";
+      const names = (nu.exercises || []).map((e) => e.name);
+      const head = names.slice(0, 2).join("・");
+      const rest = names.length > 2 ? ` ほか${names.length - 2}種目` : "";
+      sub.textContent = (head ? head + rest + " ・ " : "");
+      const a = document.createElement("a"); a.href = "#sec-now"; a.style.color = "var(--accent)"; a.textContent = "今週のメニューへ";
+      sub.appendChild(a);
+      box.appendChild(lab); box.appendChild(main); box.appendChild(sub);
+      host.appendChild(box);
+    }
+    if (!c && !nu) host.style.display = "none";
+  }
+
+  // ---- 控えめKPI ----
+  function renderKpis() {
+    const host = $("#kpis"); host.textContent = "";
+    const goalCnt = G.weeklyTargetCount || 3;
+    // 1) 今週のワークアウト
+    {
+      const cnt = DATA.thisWeekCount || 0, remain = Math.max(0, goalCnt - cnt);
+      const k = document.createElement("div"); k.className = "kpi";
+      const lbl = document.createElement("div"); lbl.className = "label"; lbl.textContent = "今週のワークアウト";
+      const val = document.createElement("div"); val.className = "value"; val.textContent = String(cnt);
+      const small = document.createElement("small"); small.textContent = ` / ${goalCnt} 回`; val.appendChild(small);
+      const delta = document.createElement("div"); delta.className = "delta";
+      delta.textContent = remain > 0 ? `週の目標まで あと${remain}回` : "今週の目標を達成";
+      const meter = document.createElement("div"); meter.className = "meter";
+      const bar = document.createElement("span"); bar.style.width = Math.min(100, Math.round((cnt / goalCnt) * 100)) + "%"; meter.appendChild(bar);
+      k.appendChild(lbl); k.appendChild(val); k.appendChild(delta); k.appendChild(meter);
+      host.appendChild(k);
+    }
+    // 2) 最新体重(+ 前回差・目標まで・スパークライン)
+    {
+      const lw = DATA.latestWeight;
+      const k = document.createElement("div"); k.className = "kpi";
+      const lbl = document.createElement("div"); lbl.className = "label";
+      lbl.textContent = lw ? `最新体重(${fmtMD(parseYMD(lw.date))})` : "最新体重";
+      const row = document.createElement("div"); row.className = "row";
+      const left = document.createElement("div");
+      const val = document.createElement("div"); val.className = "value"; val.textContent = lw ? trimN(lw.weightKg) : "—";
+      const small = document.createElement("small"); small.textContent = " kg"; val.appendChild(small);
+      const delta = document.createElement("div"); delta.className = "delta";
+      const parts = [];
+      if (DATA.weightDelta != null) parts.push(`${DATA.weightDelta >= 0 ? "+" : ""}${DATA.weightDelta}kg 前回比`);
+      if (lw && G.targetWeightKg != null) {
+        const rem = Math.round((G.targetWeightKg - lw.weightKg) * 10) / 10;
+        parts.push(Math.abs(rem) < 0.05 ? "目標達成" : `目標まで ${rem >= 0 ? "+" : ""}${rem}kg`);
+      }
+      delta.textContent = parts.join(" ・ ") || "前回との比較はまだありません";
+      left.appendChild(val); left.appendChild(delta);
+      const spark = el("svg", { id: "spark-weight", width: "80", height: "32", "aria-hidden": "true" }, null);
+      row.appendChild(left); row.appendChild(spark);
+      k.appendChild(lbl); k.appendChild(row);
+      host.appendChild(k);
+    }
+    // 3) 週目標の連続達成
+    {
+      const st = DATA.streak || 0;
+      const k = document.createElement("div"); k.className = "kpi";
+      const lbl = document.createElement("div"); lbl.className = "label"; lbl.textContent = "週目標の連続達成";
+      const val = document.createElement("div"); val.className = "value"; val.textContent = String(st);
+      const small = document.createElement("small"); small.textContent = " 週連続"; val.appendChild(small);
+      const delta = document.createElement("div"); delta.className = "delta";
+      delta.textContent = st > 0 ? `週${goalCnt}回を達成できた週が続いています` : `まずは週${goalCnt}回の達成を目指しましょう`;
+      k.appendChild(lbl); k.appendChild(val); k.appendChild(delta);
+      host.appendChild(k);
+    }
+    sparkline($("#spark-weight"), bodyW.slice(-12), { color: "var(--accent)", width: 2 });
+  }
+
+  // ---- AI週間プラン ----
+  function renderAiPlan() {
+    const host = $("#ai-plan-card"); host.textContent = "";
+    const plan = DATA.aiPlan;
+    const head = document.createElement("div"); head.className = "chart-head";
+    const hleft = document.createElement("div");
+    const title = document.createElement("div"); title.className = "chart-title"; title.textContent = "AI週間プラン";
+    const sub = document.createElement("div"); sub.className = "chart-sub";
+    hleft.appendChild(title); hleft.appendChild(sub); head.appendChild(hleft); host.appendChild(head);
+    if (!plan || !plan.days || !plan.days.length) {
+      sub.textContent = "まだ取り込まれた AI メニューがありません。アプリで生成すると、ここに週間プランが表示されます。";
+      return;
+    }
+    const meta = [`${plan.days.length}日構成`];
+    if (plan.adherence != null) meta.push(`先週の遵守率 ${Math.round(plan.adherence * 100)}%`);
+    sub.textContent = "AI が提案した週間メニュー ・ " + meta.join(" ・ ");
+    const firstPending = plan.days.findIndex((d) => d.status === "PENDING");
+    plan.days.forEach((day, di) => {
+      const card = document.createElement("div"); card.className = "log-card";
+      const h = document.createElement("div"); h.className = "log-head";
+      const dlab = document.createElement("span"); dlab.className = "log-date";
+      dlab.textContent = day.date ? fmtMDW(day.date) : day.label;
+      h.appendChild(dlab);
+      if (day.date && day.label) { const kind = document.createElement("span"); kind.className = "log-kind"; kind.textContent = day.label; h.appendChild(kind); }
+      const st = document.createElement("span");
+      if (day.status === "DONE" || day.status === "COMPLETED") { st.className = "st st-done"; st.textContent = "✓ 完了"; }
+      else { st.className = "st st-pending"; st.textContent = "予定"; }
+      h.appendChild(st);
+      if (di === firstPending) { const chip = document.createElement("span"); chip.className = "chip-next"; chip.textContent = "次回"; h.appendChild(chip); }
+      card.appendChild(h);
+      const grid = document.createElement("div"); grid.className = "log-ex";
+      (day.exercises || []).forEach((e) => {
+        const nm = document.createElement("span"); nm.className = "exname"; nm.textContent = e.name;
+        const sv = document.createElement("span"); sv.className = "exsets";
+        let txt = e.summary || "";
+        if (e.targetRir != null) txt += ` ・ RIR${e.targetRir}`;
+        if (e.restSec != null) txt += ` ・ 休憩 ${fmtRest(e.restSec)}`;
+        sv.textContent = txt;
+        grid.appendChild(nm); grid.appendChild(sv);
+      });
+      card.appendChild(grid);
+      if (day.note) { const note = document.createElement("div"); note.className = "log-note"; note.textContent = "🧠 " + day.note; card.appendChild(note); }
+      host.appendChild(card);
+    });
+  }
+
+  // ---- 自己ベスト(PR)一覧 ----
+  function renderPR() {
+    const tb = $("#pr-tbody"); tb.textContent = "";
+    const rows = (DATA.pr || []).slice(0, 12);
+    if (!rows.length) {
+      const tr = document.createElement("tr"); const td = document.createElement("td");
+      td.colSpan = 4; td.textContent = "まだ記録がありません。"; td.style.color = "var(--muted)";
+      tr.appendChild(td); tb.appendChild(tr); return;
+    }
+    rows.forEach((p) => {
+      const tr = document.createElement("tr");
+      const c1 = document.createElement("td"); c1.textContent = p.name;
+      const c2 = document.createElement("td");
+      c2.textContent = p.recordType === "BODYWEIGHT_REPS" ? `${p.reps}回(自重)` : `${trimN(p.weightKg)}kg × ${p.reps}`;
+      const c3 = document.createElement("td"); c3.className = "num pr-est";
+      c3.textContent = p.e1rm != null ? `${p.e1rm}kg` : "—";
+      const c4 = document.createElement("td"); c4.textContent = fmtMDW(p.date);
+      tr.appendChild(c1); tr.appendChild(c2); tr.appendChild(c3); tr.appendChild(c4);
+      tb.appendChild(tr);
+    });
+  }
+
+  // ---- 直近のワークアウト ----
+  function renderRecent() {
+    const host = $("#recent-body"); host.textContent = "";
+    const rows = DATA.recent || [];
+    if (!rows.length) {
+      const p = document.createElement("div"); p.className = "log-note"; p.textContent = "まだワークアウトの記録がありません。";
+      host.appendChild(p); return;
+    }
+    rows.forEach((w) => {
+      const card = document.createElement("div"); card.className = "log-card";
+      const h = document.createElement("div"); h.className = "log-head";
+      const dlab = document.createElement("span"); dlab.className = "log-date"; dlab.textContent = fmtMDW(w.date); h.appendChild(dlab);
+      const meta = document.createElement("span"); meta.className = "log-meta";
+      const mparts = [];
+      if (w.durationMin != null) mparts.push(`${w.durationMin}分`);
+      if (w.volume) mparts.push(`総挙上量 ${w.volume.toLocaleString()}kg`);
+      meta.textContent = mparts.join(" ・ ");
+      h.appendChild(meta); card.appendChild(h);
+      const grid = document.createElement("div"); grid.className = "log-ex";
+      (w.exercises || []).forEach((e) => {
+        const nm = document.createElement("span"); nm.className = "exname"; nm.textContent = e.name;
+        const sv = document.createElement("span"); sv.className = "exsets";
+        const setStrs = e.sets.map((s) => {
+          if (s.weight == null && s.reps == null) return "—";
+          const wpart = s.weight != null ? trimN(s.weight) : "自重";
+          return s.reps != null ? `${wpart}×${s.reps}` : wpart;
+        });
+        sv.textContent = setStrs.join(" / ");
+        grid.appendChild(nm); grid.appendChild(sv);
+      });
+      card.appendChild(grid);
+      if (w.note) { const note = document.createElement("div"); note.className = "log-note"; note.textContent = "メモ: " + w.note; card.appendChild(note); }
+      host.appendChild(card);
+    });
+  }
+
+  const state = { exercise: "bench", bodyWeeks: N_WEEKS };
+  function renderAll() {
+    const k = N_WEEKS, ds = weeks.slice(-k);
+    const ex = exSeries(state.exercise);
+    const w = ex.top.slice(-k), rm = ex.e1rm.slice(-k);
+
+    lineChart("#chart-strength", { dates: ds, height: 300, aria: ex.name + "の重量推移",
+      series: [ { label: "トップセット重量", cls: 1, values: w, unit: "kg", area: true }, { label: "推定1RM", cls: 2, values: rm, unit: "kg" } ] });
+    // インサイト: 記録がある週だけで前回との差を見る(記録が少なくても破綻しない)
+    {
+      const box = $("#insight-strength"); box.textContent = "";
+      const ico = document.createElement("span"); ico.className = "ico"; ico.textContent = "📈"; box.appendChild(ico);
+      const txt = document.createElement("span");
+      const present = []; rm.forEach((v, i) => { if (v != null) present.push(v); });
+      if (present.length === 0) {
+        txt.textContent = `${ex.name}の記録はまだありません。アプリで記録すると、ここに推移が表示されます。`;
+      } else if (present.length === 1) {
+        txt.textContent = `${ex.name}の推定1RMは現在 `;
+        const b = document.createElement("b"); b.textContent = `${present[0]}kg`; txt.appendChild(b);
+        txt.appendChild(document.createTextNode("。記録が増えると変化を追えるようになります。"));
+      } else {
+        const cur = present[present.length - 1], prev = present[present.length - 2];
+        const diff = Math.round((cur - prev) * 10) / 10;
+        const judge = diff >= 1 ? "伸びています。" : diff <= -1 ? "やや下がっています。" : "横ばいです。";
+        txt.textContent = `${ex.name}の推定1RMは前回から `;
+        const b = document.createElement("b"); b.textContent = `${diff >= 0 ? "+" : ""}${diff}kg`; txt.appendChild(b);
+        txt.appendChild(document.createTextNode(`(現在 ${cur}kg)。${judge}`));
+      }
+      box.appendChild(txt);
+    }
+    buildTable("#table-strength", [{ label: "週" }, { label: "トップセット", num: true }, { label: "推定1RM", num: true }],
+      ds.map((d, i) => [fmtMD(d) + "週", w[i] == null ? "—" : w[i] + "kg", rm[i] == null ? "—" : rm[i] + "kg"])
+        .filter((r) => r[1] !== "—" || r[2] !== "—").reverse());
+
+    renderBody(state.bodyWeeks);
+
+    const mv = monthlyVolume();
+    stackedBar("#chart-volume", mv.labels, mv.rows);
+    buildTable("#table-volume", [{ label: "月" }].concat(PARTS.map((p) => ({ label: p.label, num: true })), [{ label: "計", num: true }]),
+      mv.rows.map((r, i) => { const total = PARTS.reduce((a, p) => a + (r[p.key] || 0), 0); return [mv.labels[i]].concat(PARTS.map((p) => String(r[p.key] || 0)), [String(total)]); }));
+
+    renderCalendar(k);
+  }
+
+  // からだ(体組成)は期間を切り替えられる。トレーニング記録側は12ヶ月固定。
+  const monthsLabel = (k) => k >= 52 ? "直近12ヶ月" : k === 26 ? "直近6ヶ月" : k === 13 ? "直近3ヶ月" : `直近${k}週`;
+  function renderBody(k) {
+    const ds = weeks.slice(-k), bw = bodyW.slice(-k), bf = bodyF.slice(-k), lbl = monthsLabel(k);
+    $("#wtitle-weight").textContent = lbl;
+    $("#wtitle-fat").textContent = lbl;
+    const tgtW = G.targetWeightKg, tgtF = G.targetBodyFatPct;
+
+    // グラフ下のサブ説明を目標に合わせて動的に
+    const subW = $("#chart-sub-weight");
+    if (subW) subW.textContent = "週平均" + (tgtW != null ? ` ・ 点線は目標 ${trimN(tgtW)}kg` + (G.deadline ? `(期限 ${G.deadline})` : "") : "");
+    const subF = $("#chart-sub-fat");
+    if (subF) subF.textContent = "週平均" + (tgtF != null ? ` ・ 点線は目標 ${trimN(tgtF)}%` : "");
+
+    lineChart("#chart-weight", { dates: ds, height: 240, aria: "体重の推移",
+      series: [{ label: "体重", cls: 1, values: bw, unit: "kg", area: true }],
+      target: tgtW != null ? { v: tgtW, label: `目標 ${trimN(tgtW)}` } : null });
+    lineChart("#chart-fat", { dates: ds, height: 240, aria: "体脂肪率の推移",
+      series: [{ label: "体脂肪率", cls: 1, values: bf, unit: "%", area: true }],
+      target: tgtF != null ? { v: tgtF, label: `目標 ${trimN(tgtF)}` } : null });
+
+    renderBodyInsight("#insight-weight", "⚖️", "体重", bw, tgtW, "kg", lbl);
+    renderBodyInsight("#insight-fat", "🔥", "体脂肪率", bf, tgtF, "%", lbl);
+
+    buildTable("#table-weight", [{ label: "週" }, { label: "体重", num: true }, { label: "体脂肪率", num: true }],
+      ds.map((d, i) => [fmtMD(d) + "週", bw[i] == null ? "—" : bw[i] + "kg", bf[i] == null ? "—" : bf[i] + "%"])
+        .filter((r) => r[1] !== "—" || r[2] !== "—").reverse());
+  }
+
+  // 体重・体脂肪の自動コメント。目標と現在値の差から「増やす/減らす」どちらの向きかを判断するため、
+  // 増量(STRENGTH)でも減量でも正しい言い回しになる。
+  function renderBodyInsight(sel, icon, name, series, target, unit, lbl) {
+    const box = $(sel); box.textContent = "";
+    const ico = document.createElement("span"); ico.className = "ico"; ico.textContent = icon; box.appendChild(ico);
+    const txt = document.createElement("span");
+    const first = firstVal(series), last = lastVal(series);
+    if (last == null) {
+      txt.textContent = `${name}の記録はまだありません。アプリで記録すると、ここに推移とコメントが表示されます。`;
+      box.appendChild(txt); return;
+    }
+    const total = Math.round((last - first) * 10) / 10;
+    txt.textContent = `${name}は${lbl}で `;
+    const b = document.createElement("b"); b.textContent = `${total >= 0 ? "+" : ""}${total}${unit}`; txt.appendChild(b);
+    let tail = `(現在 ${last}${unit})。`;
+    if (target != null) {
+      const rem = Math.round((target - last) * 10) / 10;   // +なら増やす向き、−なら減らす向き
+      if (Math.abs(rem) < 0.05) tail += "目標を達成しています。";
+      else {
+        const needUp = rem > 0;
+        const moving = needUp ? total > 0.05 : total < -0.05;
+        tail += `目標 ${trimN(target)}${unit} まで ${needUp ? "+" : ""}${rem}${unit}。`;
+        tail += moving ? "順調に近づいています。" : (Math.abs(total) < 0.05 ? "横ばいです。" : "目標とは逆方向に動いています。");
+      }
+    } else {
+      tail += Math.abs(total) < 0.05 ? "横ばいです。" : (total > 0 ? "増加傾向です。" : "減少傾向です。");
+    }
+    txt.appendChild(document.createTextNode(tail));
+    box.appendChild(txt);
+  }
+
+  $("#body-range").querySelectorAll("button").forEach((b) => {
+    b.addEventListener("click", () => {
+      state.bodyWeeks = Number(b.dataset.weeks);
+      $("#body-range").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      renderBody(state.bodyWeeks);
+    });
+  });
+
+  const lg = $("#legend-volume");
+  PARTS.forEach((p) => { const s = document.createElement("span"); s.className = "key"; const i = document.createElement("i"); i.className = "lk-rect bg" + p.cls; s.appendChild(i); s.appendChild(document.createTextNode(p.label)); lg.appendChild(s); });
+
+  $("#exsel").addEventListener("change", (e) => { state.exercise = e.target.value; renderAll(); });
+  document.querySelectorAll("[data-toggle]").forEach((b) => {
+    b.addEventListener("click", () => {
+      const key = b.dataset.toggle, chart = $("#chart-" + key), table = $("#table-" + key);
+      const showTable = !table.classList.contains("show");
+      table.classList.toggle("show", showTable); chart.classList.toggle("hide", showTable);
+      b.textContent = showTable ? "グラフに戻る" : "表で見る";
+    });
+  });
+
+  // theme
+  function applyTheme(mode) {
+    if (mode === "auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = mode;
+    document.querySelectorAll(".theme-seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+    try { localStorage.setItem("abw-theme", mode); } catch (_) {}
+  }
+  document.querySelectorAll(".theme-seg button").forEach((b) => b.addEventListener("click", () => applyTheme(b.dataset.mode)));
+  let savedTheme = "auto"; try { savedTheme = localStorage.getItem("abw-theme") || "auto"; } catch (_) {}
+  const q = new URLSearchParams(location.search);
+  applyTheme(q.get("theme") || savedTheme);
+
+  // scroll spy
+  const navLinks = [...document.querySelectorAll(".nav a")];
+  const spy = new IntersectionObserver((entries) => {
+    entries.forEach((en) => { if (en.isIntersecting) { const id = "#" + en.target.id; navLinks.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === id)); } });
+  }, { rootMargin: "-45% 0px -50% 0px" });
+  document.querySelectorAll("section.block").forEach((s) => spy.observe(s));
+
+  let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(renderAll, 160); });
+
+  // ヘッダーの同期ステータス: 最新のワークアウト日を表示
+  {
+    const lastW = (DATA.recent && DATA.recent[0]) ? DATA.recent[0].date : null;
+    $("#sync-text").textContent = lastW ? `最新の記録 ${fmtMDW(lastW)}` : "記録を読み込みました";
+  }
+
+  renderHero();
+  renderKpis();
+  renderAiPlan();
+  renderPR();
+  renderRecent();
+  renderAll();
+
+  // iframe に埋め込まれたとき、中身の実際の高さに iframe を合わせる(内側スクロールや余白を防ぐ)。
+  // Streamlit の components.html は srcdoc の iframe(親と同一オリジン)なので frameElement を直接調整できる。
+  // 念のため親フレームへ高さも通知する(app.py 側でも拾えるように)。埋め込みでない場合は何も起きない。
+  function syncHeight() {
+    const h = Math.ceil(document.documentElement.getBoundingClientRect().height);
+    try { if (window.frameElement) window.frameElement.style.height = h + "px"; } catch (_) {}
+    try { parent.postMessage({ type: "abw-height", height: h }, "*"); } catch (_) {}
+  }
+  addEventListener("load", syncHeight);
+  setTimeout(syncHeight, 300);
+  if (window.ResizeObserver) new ResizeObserver(syncHeight).observe(document.body);
+})();
+</script>
