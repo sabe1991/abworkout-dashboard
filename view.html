@@ -253,7 +253,7 @@
   .log-date { font-weight: 700; font-size: 13.5px; }
   .log-kind { font-size: 11px; color: var(--ink-2); background: var(--page); border: 1px solid var(--border); border-radius: 9px; padding: 0 8px; }
   .log-meta { font-size: 11.5px; color: var(--muted); }
-  .log-ex { display: grid; grid-template-columns: minmax(96px, 160px) 1fr; gap: 2px 12px; margin-top: 6px; font-size: 12.5px; }
+  .log-ex { display: grid; grid-template-columns: minmax(120px, 240px) 1fr; gap: 2px 12px; margin-top: 6px; font-size: 12.5px; }
   .log-ex .exname { color: var(--ink-2); }
   .log-ex .exsets { font-variant-numeric: tabular-nums; }
   .log-note { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
@@ -489,9 +489,11 @@
       row.appendChild(name); row.appendChild(val); tip.appendChild(row);
     });
     tip.style.display = "block";
-    const bw = box.clientWidth, tw = tip.offsetWidth;
+    const bw = box.clientWidth, tw = tip.offsetWidth, th = tip.offsetHeight;
     let left = x + 14; if (left + tw > bw - 4) left = x - tw - 14;
-    tip.style.left = Math.max(4, left) + "px"; tip.style.top = Math.max(4, y - 10) + "px";
+    // 縦位置: 下にはみ出す(容器にスクロールバーが出る)場合はカーソルの上側へ回す
+    let top = y - 10; if (top + th > box.clientHeight - 4) top = y - th - 10;
+    tip.style.left = Math.max(4, left) + "px"; tip.style.top = Math.max(4, top) + "px";
   }
 
   function lineChart(boxSel, cfg) {
@@ -1057,6 +1059,14 @@
     entries.forEach((en) => { if (en.isIntersecting) { const id = "#" + en.target.id; navLinks.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === id)); } });
   }, { rootMargin: "-45% 0px -50% 0px" });
   document.querySelectorAll("section.block").forEach((s) => spy.observe(s));
+  // ナビはアンカー(#sec-…)への遷移をやめ、JS で対象へスクロールする。
+  // Streamlit 埋め込み(srcdoc の iframe)では素のアンカー遷移が iframe 全体の再読み込みを
+  // 引き起こし、全チャートの再描画やちらつきの原因になるため、既定動作を止める。
+  navLinks.forEach((a) => a.addEventListener("click", (e) => {
+    const href = a.getAttribute("href") || "";
+    const target = href[0] === "#" ? document.getElementById(href.slice(1)) : null;
+    if (target) { e.preventDefault(); target.scrollIntoView({ behavior: "smooth", block: "start" }); }
+  }));
 
   let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(renderAll, 160); });
 
