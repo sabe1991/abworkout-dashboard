@@ -284,28 +284,14 @@ def build_data(data: dict, today: date | None = None) -> dict:
         "asOf": anchor.isoformat(),
     }
 
-    # --- BIG3 推定1RM合計(「成長の証拠」カード用)・お祝い・次の予定 ---
+    # --- BIG3 推定1RM合計(「成長の証拠」カード用) ---
     big3_vals = [v for v in big3_series if v is not None]
     big3_total = big3_vals[-1] if big3_vals else None
     # 差は「12ヶ月前(対象期間の最初の週)」との比較。当時データが無ければ None(=表示は「—」)。
     big3_base = big3_series[0]
     big3_delta = round(big3_total - big3_base, 1) if (big3_total is not None and big3_base is not None) else None
-    # お祝い: 一番の看板記録(推定1RM 最大の重量系PR)。新規アプリでは「最初の記録=全部PR」に
-    # なってしまうため「最新の更新」ではなく「最も強い記録」を出す。
-    weighted_pr = [p for p in pr.values() if p.get("e1rm") is not None]
-    celebrate = None
-    if weighted_pr:
-        top = max(weighted_pr, key=lambda p: p["e1rm"])
-        days_ago = (anchor - _pdate(top["date"])).days
-        celebrate = {**top, "daysAgo": days_ago}
 
     ai = _ai_plan(bk)
-    next_up = None
-    if ai:
-        for d in ai["days"]:
-            if d["status"] == "PENDING":
-                next_up = d
-                break
 
     # --- KPI: 最新体重と前回差・週目標の連続達成 ---
     body_sorted = sorted([b for b in bk.body if b.get("weightKg") is not None], key=lambda b: b["date"])
@@ -351,8 +337,6 @@ def build_data(data: dict, today: date | None = None) -> dict:
         "lifted": lifted,
         "big3Total": big3_total,
         "big3Delta": big3_delta,
-        "celebrate": celebrate,
-        "nextUp": next_up,
         "aiPlan": ai,
         "latestWeight": latest_weight,
         "weightDelta": weight_delta,

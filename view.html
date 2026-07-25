@@ -114,7 +114,6 @@
     background: linear-gradient(135deg, var(--hero-grad-a), var(--hero-grad-b));
     border: 1px solid var(--border); border-radius: 16px;
     padding: 22px 24px; margin-bottom: 14px;
-    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px 28px; align-items: center;
   }
   .hero-main { min-width: 0; }
   .hero-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
@@ -131,9 +130,13 @@
   @keyframes equiv-pop { from { opacity: 0; transform: translateY(4px) scale(0.8); } to { opacity: 1; transform: none; } }
   .equiv-icons .pop { animation: equiv-pop 260ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both; }
   @media (prefers-reduced-motion: reduce) { .equiv-icons .pop { animation: none; } }
-  .equiv-icons .part { position: relative; display: inline-flex; }
+  /* 端数のアイコン。薄い1個(ghost)の上に、左から端数ぶんだけ濃い1個(fill)を重ねる。
+     内側の span を inline のままにすると行の高さぶんの余白が付いて、端数だけ
+     ほかのアイコンより上にずれて見えるため、どちらも inline-flex にして高さを揃える。 */
+  .equiv-icons .part { position: relative; display: inline-flex; line-height: 0; }
+  .equiv-icons .part > span { display: inline-flex; }
   .equiv-icons .part .ghost { opacity: 0.25; }
-  .equiv-icons .part .fill { position: absolute; left: 0; top: 0; display: inline-flex; overflow: hidden; }
+  .equiv-icons .part .fill { position: absolute; left: 0; top: 0; overflow: hidden; }
   .equiv-label { font-size: 13.5px; font-weight: 600; white-space: nowrap; }
   .equiv-label .n { font-size: 17px; font-weight: 800; }
   .equiv-more { font-size: 12px; color: var(--ink-2); align-self: center; white-space: nowrap; }
@@ -157,22 +160,7 @@
     .hero-row .equiv { flex-wrap: wrap; }   /* 幅が足りないときは折り返す(横スクロールを出さない) */
   }
 
-  .hero-right { display: flex; flex-direction: column; gap: 10px; align-items: stretch; min-width: 240px; }
-  .celebrate {
-    background: var(--good-bg); border-radius: 12px; padding: 12px 14px;
-    display: flex; gap: 11px; align-items: center;
-  }
-  .celebrate .medal { font-size: 26px; line-height: 1; }
-  .celebrate .c-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--good); }
-  .celebrate .c-main { font-size: 16px; font-weight: 700; margin-top: 1px; }
-  .celebrate .c-sub { font-size: 11.5px; color: var(--ink-2); }
-  .nextup { border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; background: var(--surface); }
-  .nextup .n-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-  .nextup .n-main { font-size: 15px; font-weight: 700; margin-top: 2px; }
-  .nextup .n-sub { font-size: 11.5px; color: var(--ink-2); }
   @media (max-width: 760px) {
-    .hero { grid-template-columns: 1fr; }
-    .hero-right { min-width: 0; }
     .hero-big { font-size: 42px; }
   }
 
@@ -327,7 +315,6 @@
       <div class="hero-sub" id="lift-month-sub"></div>
       <div class="hero-rows" id="hero-rows"></div>
     </div>
-    <div class="hero-right" id="hero-right"></div>
   </div>
 
   <!-- 控えめKPI -->
@@ -470,7 +457,7 @@
 </div>
 
 <!-- ビルド時にこの下の window.__DATA__ が実データ(aggregate.build_data の出力)へ置き換わる。 -->
-<script id="__data__">window.__DATA__ = window.__DATA__ || {"weeks":[],"big3Ids":{},"big3Series":[],"perExercise":{},"exerciseNames":{},"volumeWeek":[],"monthlyLabels":[],"monthlyRows":[],"partOrder":[],"partLabel":{},"calendar":{},"weightSeries":[],"fatSeries":[],"goal":{},"thisWeekCount":0,"pr":[],"recent":[],"anchor":null,"lifted":null,"big3Total":null,"big3Delta":null,"celebrate":null,"nextUp":null,"aiPlan":null,"latestWeight":null,"weightDelta":null,"streak":0};</script>
+<script id="__data__">window.__DATA__ = window.__DATA__ || {"weeks":[],"big3Ids":{},"big3Series":[],"perExercise":{},"exerciseNames":{},"volumeWeek":[],"monthlyLabels":[],"monthlyRows":[],"partOrder":[],"partLabel":{},"calendar":{},"weightSeries":[],"fatSeries":[],"goal":{},"thisWeekCount":0,"pr":[],"recent":[],"anchor":null,"lifted":null,"big3Total":null,"big3Delta":null,"aiPlan":null,"latestWeight":null,"weightDelta":null,"streak":0};</script>
 <script>
 (() => {
   "use strict";
@@ -760,7 +747,6 @@
   // ---- 線画アイコン(絵文字は使わず、currentColor で色が付く SVG を使う) ----
   // 24×24 のストローク(輪郭線)アイコン。Lucide 由来の素直なパス。
   const ICONS = {
-    award:   '<circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>',
     check:   '<path d="M20 6 9 17l-5-5"/>',
     note:    '<path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10l6-6V5a2 2 0 0 0-2-2z"/><path d="M15 21v-5a1 1 0 0 1 1-1h5"/>',
     trendUp: '<path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/>',
@@ -835,8 +821,10 @@
       part.style.animationDelay = (shown * 55) + "ms";
       const ghost = document.createElement("span"); ghost.className = "ghost";
       ghost.appendChild(unitIcon(u.icon, size));
+      // 幅は px ではなく割合で指定する。実際に描かれるアイコンの寸法が指定値と
+      // ずれても(表示倍率などで縮む場合がある)、端数の見た目が狂わないようにするため。
       const fill = document.createElement("span"); fill.className = "fill";
-      fill.style.width = Math.round(frac * size) + "px"; fill.style.height = size + "px";
+      fill.style.width = (frac * 100) + "%"; fill.style.height = "100%";
       fill.appendChild(unitIcon(u.icon, size));
       part.appendChild(ghost); part.appendChild(fill); row.appendChild(part);
     }
@@ -936,37 +924,6 @@
       });
     }
 
-    const host = $("#hero-right"); host.textContent = ""; host.style.display = "";
-    const c = DATA.celebrate;
-    if (c) {
-      const box = document.createElement("div"); box.className = "celebrate";
-      const medal = iconEl("award", 24); medal.classList.add("medal"); medal.style.color = "var(--good)"; box.appendChild(medal);
-      const inner = document.createElement("div");
-      const lab = document.createElement("div"); lab.className = "c-label"; lab.textContent = "いちばんの記録";
-      const main = document.createElement("div"); main.className = "c-main";
-      main.textContent = `${c.name} ${trimN(c.weightKg)}kg × ${c.reps}`;
-      const sub = document.createElement("div"); sub.className = "c-sub";
-      sub.textContent = (c.e1rm != null ? `推定1RM ${c.e1rm}kg ・ ` : "") + `${fmtMDW(c.date)} 達成`;
-      inner.appendChild(lab); inner.appendChild(main); inner.appendChild(sub); box.appendChild(inner);
-      host.appendChild(box);
-    }
-    const nu = DATA.nextUp;
-    if (nu) {
-      const box = document.createElement("div"); box.className = "nextup";
-      const lab = document.createElement("div"); lab.className = "n-label"; lab.textContent = "次のトレーニング";
-      const main = document.createElement("div"); main.className = "n-main";
-      main.textContent = (nu.date ? fmtMDW(nu.date) + " " : "") + (nu.label || "");
-      const sub = document.createElement("div"); sub.className = "n-sub";
-      const names = (nu.exercises || []).map((e) => e.name);
-      const head = names.slice(0, 2).join("・");
-      const rest = names.length > 2 ? ` ほか${names.length - 2}種目` : "";
-      sub.textContent = (head ? head + rest + " ・ " : "");
-      const a = document.createElement("a"); a.href = "#sec-now"; a.style.color = "var(--accent)"; a.textContent = "今週のメニューへ";
-      sub.appendChild(a);
-      box.appendChild(lab); box.appendChild(main); box.appendChild(sub);
-      host.appendChild(box);
-    }
-    if (!c && !nu) host.style.display = "none";
   }
 
   // ---- BIG3 推定1RM合計(成長の証拠) ----
@@ -1333,7 +1290,7 @@
       }
     }
   }
-  safeRender("ヒーロー", ".hero", renderHero);
+  safeRender("ヒーロー", ".hero-main", renderHero);
   safeRender("BIG3", ".big3", renderBig3);
   safeRender("KPI", "#kpis", renderKpis);
   safeRender("AI週間プラン", "#ai-plan-card", renderAiPlan);
