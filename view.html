@@ -133,7 +133,10 @@
 
   /* 総挙上量の「◯◯何台ぶん」表示。アイコンを実数ぶん並べ、端数は半分だけ塗る */
   .equiv { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
-  .equiv-icons { display: flex; align-items: flex-end; gap: 3px; color: var(--accent); }
+  /* アイコンは省略しないので、入りきらないときは折り返して全部並べる。
+     min-width: 0 が無いと横に伸び続けて画面からはみ出す(flex の既定は縮まない)。 */
+  .equiv-icons { display: flex; align-items: flex-end; gap: 3px; color: var(--accent);
+    flex-wrap: wrap; row-gap: 4px; min-width: 0; }
   .equiv-icons .unitico { display: inline-flex; }
   /* 左から1個ずつ増えていく演出。動きを減らす設定の端末では出さない */
   @keyframes equiv-pop { from { opacity: 0; transform: translateY(4px) scale(0.8); } to { opacity: 1; transform: none; } }
@@ -148,7 +151,6 @@
   .equiv-icons .part .fill { position: absolute; left: 0; top: 0; overflow: hidden; }
   .equiv-label { font-size: 13.5px; font-weight: 600; white-space: nowrap; }
   .equiv-label .n { font-size: 17px; font-weight: 800; }
-  .equiv-more { font-size: 12px; color: var(--ink-2); align-self: center; white-space: nowrap; }
 
   /* 今週・今年ぶん(ヒーロー下段) */
   .hero-rows { margin-top: 14px; padding-top: 4px; border-top: 1px solid var(--border); }
@@ -163,7 +165,6 @@
   .hero-row .equiv { margin-top: 0; flex-wrap: nowrap; }
   .hero-row .equiv-label { font-size: 12.5px; font-weight: 500; color: var(--ink-2); }
   .hero-row .equiv-label .n { font-size: 14px; font-weight: 700; color: var(--ink); }
-  .hero-row .w-delta { font-size: 12px; color: var(--ink-2); }
   @media (max-width: 560px) {
     .hero-row { grid-template-columns: 56px 1fr; }
     .hero-row .w-val { justify-self: start; }
@@ -766,24 +767,27 @@
     return span;
   }
   /** 総挙上量 kg を「アイコンの行 + ◯◯N台ぶん」に描画する。size はアイコンの1辺(px)。
-      アイコンは左から1個ずつ現れる(積み上がっていく感じを出すため)。 */
-  function renderEquiv(host, kg, size, maxIcons, forceUnit) {
+      アイコンは左から1個ずつ現れる(積み上がっていく感じを出すため)。
+      積み上げた実績そのものなので**個数は省略しない**。多いときは折り返して全部並べる。 */
+  function renderEquiv(host, kg, size) {
     host.textContent = "";
     if (!kg) return;
-    const u = forceUnit || pickEquivUnit(kg);
+    const u = pickEquivUnit(kg);
     const n = kg / u.kg;
-    const shown = Math.min(Math.floor(n), maxIcons);
-    const frac = n - Math.floor(n);
+    const whole = Math.floor(n);
+    const frac = n - whole;
+    // 1個ずつずらして出す間隔。個数が多いときは、全体で 900ms(数字の数え上がりと同じ)に収める。
+    const step = whole > 1 ? Math.max(10, Math.min(55, 900 / whole)) : 55;
     const row = document.createElement("div"); row.className = "equiv-icons";
-    for (let i = 0; i < shown; i++) {
+    for (let i = 0; i < whole; i++) {
       const s = document.createElement("span"); s.className = "unitico pop";
-      s.style.animationDelay = (i * 55) + "ms";
+      s.style.animationDelay = Math.round(i * step) + "ms";
       s.appendChild(unitIcon(u.icon, size)); row.appendChild(s);
     }
     // 端数は、薄いアイコンの上に「左から端数ぶんだけ」濃いアイコンを重ねて表す
-    if (Math.floor(n) <= maxIcons && frac >= 0.08) {
+    if (frac >= 0.08) {
       const part = document.createElement("span"); part.className = "part pop";
-      part.style.animationDelay = (shown * 55) + "ms";
+      part.style.animationDelay = Math.round(whole * step) + "ms";
       const ghost = document.createElement("span"); ghost.className = "ghost";
       ghost.appendChild(unitIcon(u.icon, size));
       // 幅は px ではなく割合で指定する。実際に描かれるアイコンの寸法が指定値と
@@ -794,11 +798,6 @@
       part.appendChild(ghost); part.appendChild(fill); row.appendChild(part);
     }
     host.appendChild(row);
-    if (Math.floor(n) > maxIcons) {
-      const more = document.createElement("span"); more.className = "equiv-more";
-      more.textContent = `ほか${Math.floor(n) - maxIcons}`;
-      host.appendChild(more);
-    }
     const lab = document.createElement("div"); lab.className = "equiv-label";
     if (u.note) lab.title = u.note;
     const num = document.createElement("span"); num.className = "n";
@@ -873,7 +872,7 @@
     // 大きいほうから 年 → 月 → 週 の順に並べる。主役(特大表示)は今年ぶん。
     $("#lift-hero-label").textContent = lf.yearLabel || "今年";
     countUp($("#lift-hero"), lf.year);
-    renderEquiv($("#lift-hero-equiv"), lf.year, 28, 12, pickEquivUnit(lf.year || 0));
+    renderEquiv($("#lift-hero-equiv"), lf.year, 28);
     // 右上: 昨年の同じ時点まで
     const prev = $("#lift-hero-prev"); prev.textContent = "";
     const py = prevParts("year", lf);
@@ -902,7 +901,7 @@
       countUp(num, r.kg);
       const right = document.createElement("div"); right.className = "w-right";
       const eq = document.createElement("div"); eq.className = "equiv";
-      renderEquiv(eq, r.kg, 20, 6, null);
+      renderEquiv(eq, r.kg, 20);
       right.appendChild(eq);
       const pv = document.createElement("div"); pv.className = "w-prev";
       const p = prevParts(r.scope, lf);
