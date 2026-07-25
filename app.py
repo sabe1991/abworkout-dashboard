@@ -43,7 +43,7 @@ for _mod in (aggregate, build_view):
 HERE = os.path.dirname(os.path.abspath(__file__))
 SAMPLE = os.path.join(HERE, "..", "sample-data", "latest.json")
 
-st.set_page_config(page_title="AB Workout ダッシュボード", page_icon=":material/fitness_center:", layout="wide")
+st.set_page_config(page_title="ワークアウトダッシュボード", page_icon=":material/fitness_center:", layout="wide")
 
 # Streamlit 標準の余白・ヘッダーを詰めて、ダッシュボードを画面いっぱいに見せる
 st.markdown(

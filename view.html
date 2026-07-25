@@ -1,4 +1,4 @@
-<title>AB Workout ダッシュボード(モックアップ)</title>
+<title>ワークアウトダッシュボード</title>
 <style>
   :root {
     color-scheme: light;
@@ -87,8 +87,9 @@
 
   /* ---------- header ---------- */
   header.site { display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; margin-bottom: 22px; }
-  .site .brand { font-size: 15px; font-weight: 600; letter-spacing: 0.02em; color: var(--ink-2); }
-  .site .brand b { color: var(--ink); font-weight: 700; }
+  /* 画面の名前。以前は 15px の控えめな表示だったが、ページの主題として分かるよう大きくした */
+  .site .brand { font-size: 24px; font-weight: 700; letter-spacing: 0.01em; line-height: 1.25; color: var(--ink); }
+  .site .brand b { font-weight: 700; }
   /* 「最新の記録」とテーマ切り替えは、縦に積むと窮屈に見えるので横に並べる(幅が足りなければ折り返す)。 */
   .head-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px 16px; flex-wrap: wrap; }
   .sync { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; }
@@ -119,8 +120,11 @@
   .hero-main { min-width: 0; }
   .hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px 24px; flex-wrap: wrap; }
   .hero-now { min-width: 0; }
+  /* ヒーロー右上。単位の切り替えを上に、その下に前期間の比較値を置く */
+  .hero-side { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; margin-left: auto; }
+  .hero-tools { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
   /* 右端の比較用(ひとつ前の期間の総重量)。今の値を主役に保つため、色も大きさも控えめにする */
-  .hero-prev { text-align: right; margin-left: auto; }
+  .hero-prev { text-align: right; }
   .hero-prev .p-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); }
   /* どの時点で切ったか(「(25日まで)」)。ラベルに添えて常に見えるようにする */
   .p-note { font-weight: 500; letter-spacing: 0; margin-left: 3px; }
@@ -155,13 +159,13 @@
   /* 3行に収まらないときの省略。「🚗🚗🚗.....🚗」のように途中だけを点で省く */
   .equiv-gap { align-self: flex-end; color: var(--ink-2); letter-spacing: 2px; line-height: 1;
     font-size: 13px; padding: 0 3px 3px; user-select: none; }
-  /* 単位の切り替え。3つの期間をすべて同じ単位で見たいときに使う */
-  .hero-foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px;
-    margin-top: 12px; font-size: 12px; color: var(--muted); }
 
   /* 今週・今年ぶん(ヒーロー下段) */
   .hero-rows { margin-top: 14px; padding-top: 4px; border-top: 1px solid var(--border); }
-  .hero-row { display: grid; grid-template-columns: 56px minmax(96px, auto) 1fr auto; align-items: center; gap: 4px 14px; padding: 9px 0; }
+  /* 4列目(前期間の比較値)は max-content で必要な幅を先に確保し、換算アイコンの列は
+     minmax(0, 1fr) にする。こうしないとアイコンが増えたときに比較値が押し出されて
+     細く潰れたり下へ回り込んだりする(アイコンは3行に収まるよう自動で数を減らす)。 */
+  .hero-row { display: grid; grid-template-columns: 56px minmax(96px, auto) minmax(0, 1fr) max-content; align-items: center; gap: 4px 14px; padding: 9px 0; }
   .hero-row .w-prev { font-size: 13px; color: var(--ink-2); white-space: nowrap; text-align: right; }
   .hero-row .w-prev .p-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); margin-right: 6px; }
   .hero-row + .hero-row { border-top: 1px solid var(--grid); }
@@ -175,6 +179,9 @@
   @media (max-width: 560px) {
     /* 見出しの下に回り込むので、右寄せをやめて左からゆったり並べる */
     .head-right { justify-content: flex-start; width: 100%; }
+    /* 大きな数字の横には収まらないので、下に1行として置く(単位の選択は左、比較値は右) */
+    .hero-side { flex-direction: row; align-items: flex-end; justify-content: space-between;
+      width: 100%; gap: 12px; }
     .hero-row { grid-template-columns: 56px 1fr; }
     .hero-row .w-val { justify-self: start; }
     .hero-row .w-right { grid-column: 2; }
@@ -310,7 +317,7 @@
 
 <div class="wrap">
   <header class="site">
-    <div class="brand"><b>AB Workout</b> ダッシュボード</div>
+    <div class="brand"><b>ワークアウトダッシュボード</b></div>
     <div class="head-right">
       <div class="sync" id="sync-line"><span class="dot"></span><span id="sync-text">読み込み中…</span></div>
       <div class="theme-seg" role="group" aria-label="表示テーマ">
@@ -328,15 +335,19 @@
         <div class="hero-now">
           <div class="hero-eyebrow"><span id="lift-hero-label">今年</span> 持ち上げた総重量</div>
           <div class="hero-big"><span id="lift-hero">—</span><span class="unit">kg</span></div>
-          <div class="equiv" id="lift-hero-equiv"></div>
         </div>
-        <div class="hero-prev" id="lift-hero-prev"></div>
+        <div class="hero-side">
+          <div class="hero-tools">
+            <label for="equiv-unit">たとえる単位</label>
+            <select class="exsel" id="equiv-unit"></select>
+          </div>
+          <div class="hero-prev" id="lift-hero-prev"></div>
+        </div>
       </div>
+      <!-- 換算アイコンは hero-top の外(下)に置く。中に入れると、アイコンが増えたぶん
+           左側が横に広がって、右端の比較値(昨年ぶん)が下の行へ追い出されてしまうため。 -->
+      <div class="equiv" id="lift-hero-equiv"></div>
       <div class="hero-rows" id="hero-rows"></div>
-      <div class="hero-foot">
-        <label for="equiv-unit">たとえる単位</label>
-        <select class="exsel" id="equiv-unit"></select>
-      </div>
     </div>
   </div>
 
