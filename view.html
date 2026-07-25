@@ -312,7 +312,22 @@
   <section class="block" id="sec-growth">
     <div class="sec-head"><h2>成長の証拠</h2><span class="sec-note">強くなった量を追う</span></div>
 
-    <div class="card" style="margin-bottom:14px">
+    <div class="card">
+      <div class="chart-head"><div><div class="chart-title">直近のワークアウト</div><div class="chart-sub">最新5件を表示</div></div></div>
+      <div id="recent-body"></div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="chart-head"><div><div class="chart-title">最近更新した自己ベスト</div><div class="chart-sub" id="pr-sub"></div></div></div>
+      <div class="table-wrap show">
+        <table class="data">
+          <thead><tr><th>種目</th><th>記録</th><th class="num">推定1RM</th><th>達成日</th></tr></thead>
+          <tbody id="pr-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
       <div class="chart-head">
         <div>
           <div class="chart-title"><span id="stitle-strength">重量</span>の推移(<span id="wtitle-strength">直近12ヶ月</span>)</div>
@@ -337,21 +352,6 @@
       <div class="insight" id="insight-strength"></div>
       <div class="chart-box" id="chart-strength"></div>
       <div class="table-wrap" id="table-strength"></div>
-    </div>
-
-    <div class="card">
-      <div class="chart-head"><div class="chart-title">自己ベスト(PR)一覧</div></div>
-      <div class="table-wrap show">
-        <table class="data">
-          <thead><tr><th>種目</th><th>記録</th><th class="num">推定1RM</th><th>達成日</th></tr></thead>
-          <tbody id="pr-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:14px">
-      <div class="chart-head"><div><div class="chart-title">直近のワークアウト</div><div class="chart-sub">最新5件を表示</div></div></div>
-      <div id="recent-body"></div>
     </div>
   </section>
 
@@ -870,12 +870,30 @@
   }
 
   // ---- 自己ベスト(PR)一覧 ----
+  const PR_MONTHS = 3;  // 対象期間(この値を変えれば絞り込みの長さを変えられる)
+  const PR_MAX = 12;    // 表示する最大件数
   function renderPR() {
     const tb = $("#pr-tbody"); tb.textContent = "";
-    const rows = (DATA.pr || []).slice(0, 12);
+    // 基準日は anchor(通常は今日。データ側で「今日と最新記録日の遅いほう」にしてある)。
+    // 日付は "YYYY-MM-DD" 形式なので、文字列のまま大小を比べれば日付の前後と一致する。
+    const [ay, am, ad] = (DATA.anchor || fmtYMD(new Date())).split("-").map(Number);
+    const since = fmtYMD(new Date(ay, am - 1 - PR_MONTHS, ad));
+    const inPeriod = (DATA.pr || []).filter((p) => p.date && p.date >= since)
+      // 達成日の新しい順。元の配列は推定1RM の高い順に並んでおり、JS の並べ替えは
+      // 同じ値どうしの順番を保つ(安定ソート)ので、同じ日なら重い記録が上に来る。
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    const rows = inPeriod.slice(0, PR_MAX);
+    const hidden = inPeriod.length - rows.length;
+    $("#pr-sub").textContent = `直近${PR_MONTHS}ヶ月に更新したぶんを、達成日の新しい順に最大${PR_MAX}件`
+      + (hidden > 0 ? `(この期間にほか${hidden}件)` : "");
     if (!rows.length) {
       const tr = document.createElement("tr"); const td = document.createElement("td");
-      td.colSpan = 4; td.textContent = "まだ記録がありません。"; td.style.color = "var(--muted)";
+      td.colSpan = 4;
+      // 「1件も記録が無い」のと「期間内に更新が無かった」のは意味が違うので文言を分ける
+      td.textContent = (DATA.pr || []).length
+        ? `直近${PR_MONTHS}ヶ月に更新した自己ベストはありません。`
+        : "まだ記録がありません。";
+      td.style.color = "var(--muted)";
       tr.appendChild(td); tb.appendChild(tr); return;
     }
     rows.forEach((p) => {
