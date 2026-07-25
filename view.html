@@ -123,6 +123,8 @@
   .hero-prev .p-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); }
   /* どの時点で切ったか(「(25日まで)」)。ラベルに添えて常に見えるようにする */
   .p-note { font-weight: 500; letter-spacing: 0; margin-left: 3px; }
+  /* その期間まるごとの合計。同じ時点までの値より一段控えめに、すぐ下の行に置く */
+  .p-full { font-size: 11.5px; color: var(--muted); margin-top: 2px; white-space: nowrap; }
   .hero-prev .p-val { font-size: 20px; font-weight: 700; line-height: 1.15; color: var(--ink-2); margin-top: 2px; }
   .hero-prev .p-val small { font-size: 12px; font-weight: 500; margin-left: 2px; }
   .hero-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
@@ -756,13 +758,6 @@
     }
     return EQUIV_UNITS[0];
   }
-  /** 今週ぶんは今月と同じ単位で見せる(単位が違うと大小を比べられないため)。
-      ただし今月の単位では1個に満たない場合だけ、1段軽い単位に落とす。 */
-  function stepDownWhileTiny(unit, kg) {
-    let i = EQUIV_UNITS.indexOf(unit);
-    while (i > 0 && kg / EQUIV_UNITS[i].kg < 0.8) i--;
-    return EQUIV_UNITS[i];
-  }
   // 既存の iconEl と同じく「span を作って innerHTML に <svg> ごと入れる」方式にする。
   // SVG 要素そのものへの innerHTML 代入は対応していないブラウザがあるため使わない。
   function unitIcon(name, size) {
@@ -831,9 +826,9 @@
 
   // ---- HERO(持ち上げた総重量) ----
   // 右端に出す「ひとつ前の期間」の値まわり。
-  // 表示している数字は今の期間と同じ時点までで切ったぶん(進行中の今月を、終わった先月
-  // まるごとと比べると必ず負けて見えるため)。どこで切ったかはラベルに常に出し、
-  // まるごとの合計はマウスを乗せたときの補足に回す。
+  // 主役の数字は今の期間と同じ時点までで切ったぶん(進行中の今月を、終わった先月
+  // まるごとと比べると必ず負けて見えるため)。どこで切ったかはラベルに、
+  // その期間まるごとの合計は下の行に、どちらも常に見える形で出す。
   const PREV_KEYS = {
     month: ["monthPrev", "monthPrevTo", "monthPrevFull", "monthPrevLabel", "今月"],
     week: ["weekPrev", "weekPrevTo", "weekPrevFull", null, "今週"],
@@ -852,10 +847,11 @@
     const head = scope === "week" ? `先週の月曜〜${WD[d.getDay()]}曜`
       : scope === "month" ? `${label}の1〜${d.getDate()}日`
       : `${label}の1/1〜${d.getMonth() + 1}/${d.getDate()}`;
-    // まるごとと同じ範囲になる月末などでは、補足の「まるごとでは…」は出さない(同じ数字になるため)
-    const title = `${head}の合計(${g[4]}と同じ時点まで)${kg ? "" : " ※記録なし"}`
-      + (full && full !== kg ? `。${label}まるごとでは ${Math.round(full).toLocaleString()}kg` : "");
-    return { label, note, title, kg };
+    const title = `${head}の合計(${g[4]}と同じ時点まで)${kg ? "" : " ※記録なし"}`;
+    // 期間まるごとの合計。同じ範囲になる月末などは、同じ数字が2度並ぶだけなので出さない。
+    const fullText = full && full !== kg
+      ? `${label}まるごと ${Math.round(full).toLocaleString()}kg` : "";
+    return { label, note, title, kg, fullText };
   }
   // ラベル(「6月」)と、そこで切った時点(「(25日まで)」)を1つの要素にまとめる
   function prevLabelEl(p, tag) {
@@ -865,11 +861,16 @@
   }
   // 比較用の数値。0 のときは「その期間に記録が無い」ので、ほかの箇所と同じく「—」にする
   const prevKg = (v) => (v ? Math.round(v).toLocaleString() + "kg" : "—");
+  // 「先週まるごと 21,050kg」の行。値が無い(同じ範囲になる)ときは何も足さない
+  function appendFull(host, p) {
+    if (!p.fullText) return;
+    const f = document.createElement("div"); f.className = "p-full"; f.textContent = p.fullText;
+    host.appendChild(f);
+  }
 
   function renderHero() {
     const lf = DATA.lifted || {};
     // 大きいほうから 年 → 月 → 週 の順に並べる。主役(特大表示)は今年ぶん。
-    const monthUnit = pickEquivUnit(lf.month || 0);
     $("#lift-hero-label").textContent = lf.yearLabel || "今年";
     countUp($("#lift-hero"), lf.year);
     renderEquiv($("#lift-hero-equiv"), lf.year, 28, 12, pickEquivUnit(lf.year || 0));
@@ -884,14 +885,14 @@
         const u = document.createElement("small"); u.textContent = "kg"; pv.appendChild(u);
       } else { pv.textContent = "—"; }
       prev.appendChild(prevLabelEl(py, "div")); prev.appendChild(pv);
+      appendFull(prev, py);
     }
-    // 今月・今週ぶん(下段)
-    // 今週は今月と同じ単位でそろえる(スケールが近く、大小を比べたいため)。
-    // 今年は桁が1つ2つ上がるので、上の特大表示だけ単位を選び直している。
+    // 今月・今週ぶん(下段)。換算アイコンの単位は、期間ごとにその量に合うものを選び直す
+    // (以前は今週を今月にそろえていたが、桁が違うと「0.3台ぶん」のような見え方になるため)。
     const rows = $("#hero-rows"); rows.textContent = "";
     [
-      { label: lf.monthLabel || "今月", kg: lf.month, unit: monthUnit, scope: "month" },
-      { label: "今週", kg: lf.week, unit: stepDownWhileTiny(monthUnit, lf.week || 0), scope: "week" },
+      { label: lf.monthLabel || "今月", kg: lf.month, scope: "month" },
+      { label: "今週", kg: lf.week, scope: "week" },
     ].forEach((r) => {
       const row = document.createElement("div"); row.className = "hero-row";
       const lab = document.createElement("span"); lab.className = "w-label"; lab.textContent = r.label;
@@ -901,14 +902,17 @@
       countUp(num, r.kg);
       const right = document.createElement("div"); right.className = "w-right";
       const eq = document.createElement("div"); eq.className = "equiv";
-      renderEquiv(eq, r.kg, 20, 6, r.unit);
+      renderEquiv(eq, r.kg, 20, 6, null);
       right.appendChild(eq);
       const pv = document.createElement("div"); pv.className = "w-prev";
       const p = prevParts(r.scope, lf);
       if (p) {
         pv.title = p.title;
-        pv.appendChild(prevLabelEl(p, "span"));
-        pv.appendChild(document.createTextNode(prevKg(p.kg)));
+        const line = document.createElement("div");
+        line.appendChild(prevLabelEl(p, "span"));
+        line.appendChild(document.createTextNode(prevKg(p.kg)));
+        pv.appendChild(line);
+        appendFull(pv, p);
       }
       row.appendChild(lab); row.appendChild(val); row.appendChild(right); row.appendChild(pv);
       rows.appendChild(row);
