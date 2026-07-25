@@ -184,20 +184,19 @@ def build_data(data: dict, today: date | None = None) -> dict:
         if found:
             big3_ids[key] = found
 
-    # BIG3 推定1RM合計の週次系列(記録が無い週は直前の値を持ち越し)
-    def ex_e1rm_series(ex_id):
-        series, last = [], None
-        for wi in range(N_WEEKS):
-            cell = per_ex_week.get(ex_id, {}).get(wi)
-            if cell:
-                last = cell["e1rm"]
-            series.append(last)
-        return series
-    big3_series_each = {k: ex_e1rm_series(v) for k, v in big3_ids.items()}
+    # BIG3 推定1RM合計の週次系列。
+    # 値を出すのは「その週に3種目すべてを実施した週」だけで、1種目でも欠けた週は None(点を打たない)。
+    # 以前は種目ごとに直前の値を持ち越して足していたが、それだとベンチだけやった週の合計が
+    # スクワット・デッドリフトの過去の値で埋められ、「その週の3種目の力の合計」ではなくなっていた。
+    # また BIG3 のどれかがそもそも記録に無い(種目IDが解決できない)場合は、全週 None になる。
+    big3_complete = len(big3_ids) == len(BIG3)
     big3_series = []
     for wi in range(N_WEEKS):
-        vals = [big3_series_each[k][wi] for k in big3_ids if big3_series_each[k][wi] is not None]
-        big3_series.append(round(sum(vals), 1) if vals else None)
+        cells = [per_ex_week.get(ex_id, {}).get(wi) for ex_id in big3_ids.values()]
+        if big3_complete and all(c and c.get("e1rm") is not None for c in cells):
+            big3_series.append(round(sum(c["e1rm"] for c in cells), 1))
+        else:
+            big3_series.append(None)
 
     # --- 月次ボリューム(積み上げバー用): 週セット数を月にまとめる ---
     monthly = {}

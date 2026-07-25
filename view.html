@@ -325,8 +325,8 @@
             <button type="button" data-weeks="52" aria-pressed="true">12ヶ月</button>
           </div>
           <select class="exsel" id="exsel" aria-label="表示する記録を選択">
-            <option value="big3" selected>BIG3 推定1RM合計</option>
-            <option value="bench">ベンチプレス</option>
+            <option value="big3">BIG3 推定1RM合計</option>
+            <option value="bench" selected>ベンチプレス</option>
             <option value="squat">スクワット</option>
             <option value="deadlift">デッドリフト</option>
           </select>
@@ -939,10 +939,10 @@
   }
 
   const STRENGTH_SUB = {
-    big3: "ベンチプレス・スクワット・デッドリフトの推定1RM(1回だけ挙げられる最大重量の推定値)を足した値。記録が無い週は直前の値をそのまま引き継ぐ",
+    big3: "ベンチプレス・スクワット・デッドリフトの推定1RM(1回だけ挙げられる最大重量の推定値)を足した値。3種目すべてを実施した週だけ点を打つ",
     each: "週ごとのトップセット(いちばん重いセット)と、そこから換算した推定1RM",
   };
-  const state = { exercise: "big3", bodyWeeks: N_WEEKS, strengthWeeks: N_WEEKS };
+  const state = { exercise: "bench", bodyWeeks: N_WEEKS, strengthWeeks: N_WEEKS };
   function renderAll() {
     const k = state.strengthWeeks, ds = weeks.slice(-k);
     const ex = exSeries(state.exercise);
@@ -966,19 +966,20 @@
       const txt = document.createElement("span");
       const present = []; rm.forEach((v, i) => { if (v != null) present.push(v); });
       if (present.length === 0) {
-        txt.textContent = `${ex.name}の記録はまだありません。アプリで記録すると、ここに推移が表示されます。`;
+        // 合計は「3種目そろった週」しか点にならないので、記録が無いのとは意味が違う。
+        // 「まだ記録していない」と読めてしまうと誤解を招くため、文言を分ける。
+        txt.textContent = isTotal
+          ? "ベンチプレス・スクワット・デッドリフトを同じ週にすべて実施した週が、まだありません。3種目そろった週から合計を表示します。"
+          : `${ex.name}の記録はまだありません。アプリで記録すると、ここに推移が表示されます。`;
       } else if (present.length === 1) {
         txt.textContent = `${ex.name}の${ex.metric}は現在 `;
         const b = document.createElement("b"); b.textContent = `${present[0]}kg`; txt.appendChild(b);
         txt.appendChild(document.createTextNode("。記録が増えると変化を追えるようになります。"));
       } else {
-        // BIG3 合計は記録が無い週も直前の値を引き継ぐため「前回」との差がほぼ 0 になってしまう。
-        // そこで合計のときだけ、表示している期間の最初の値と比べる。
-        const cur = present[present.length - 1];
-        const prev = isTotal ? present[0] : present[present.length - 2];
+        const cur = present[present.length - 1], prev = present[present.length - 2];
         const diff = Math.round((cur - prev) * 10) / 10;
         const judge = diff >= 1 ? "伸びています。" : diff <= -1 ? "やや下がっています。" : "横ばいです。";
-        txt.textContent = `${ex.name}の${ex.metric}は${isTotal ? monthsLabel(k) + "で " : "前回から "}`;
+        txt.textContent = `${ex.name}の${ex.metric}は${isTotal ? "3種目そろえた前回から " : "前回から "}`;
         const b = document.createElement("b"); b.textContent = `${diff >= 0 ? "+" : ""}${diff}kg`; txt.appendChild(b);
         txt.appendChild(document.createTextNode(`(現在 ${cur}kg)。${judge}`));
       }
