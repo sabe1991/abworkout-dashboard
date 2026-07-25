@@ -139,7 +139,11 @@
   .hero-big .unit { font-size: 22px; font-weight: 600; color: var(--ink-2); margin-left: 4px; }
 
   /* 総挙上量の「◯◯何台ぶん」表示。アイコンを実数ぶん並べ、端数は半分だけ塗る */
-  .equiv { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+  /* アイコンの列と「大人 11,872.3 人ぶん」のラベルは折り返さず横に並べる。
+     折り返しありにすると、アイコンが増えて幅いっぱいになった単位(大人など)だけ
+     ラベルが下の行に落ちて、単位によって見た目が変わってしまうため。
+     ラベルの幅は先に確保され、アイコン側が残りを使って3行以内に収まる数まで減る。 */
+  .equiv { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; margin-top: 10px; }
   /* アイコンは省略しないので、入りきらないときは折り返して全部並べる。
      min-width: 0 が無いと横に伸び続けて画面からはみ出す(flex の既定は縮まない)。 */
   .equiv-icons { display: flex; align-items: flex-end; gap: 3px; color: var(--accent);
@@ -175,7 +179,7 @@
   .hero-row .w-val { font-size: 23px; font-weight: 700; line-height: 1.1; justify-self: end; }
   .hero-row .w-val small { font-size: 13px; font-weight: 500; color: var(--ink-2); margin-left: 2px; }
   .hero-row .w-right { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; min-width: 0; }
-  .hero-row .equiv { margin-top: 0; flex-wrap: nowrap; }
+  .hero-row .equiv { margin-top: 0; }
   .hero-row .equiv-label { font-size: 12.5px; font-weight: 500; color: var(--ink-2); }
   .hero-row .equiv-label .n { font-size: 14px; font-weight: 700; color: var(--ink); }
   @media (max-width: 560px) {
@@ -189,7 +193,7 @@
     .hero-row .w-val { justify-self: start; }
     .hero-row .w-right { grid-column: 2; }
     .hero-row .w-prev { grid-column: 2; text-align: left; }
-    .hero-row .equiv { flex-wrap: wrap; }   /* 幅が足りないときは折り返す(横スクロールを出さない) */
+    .equiv { flex-wrap: wrap; }   /* 幅が足りないときはラベルを下の行に回す(横スクロールを出さない) */
   }
 
   @media (max-width: 760px) {
