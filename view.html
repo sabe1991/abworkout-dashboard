@@ -118,10 +118,12 @@
     padding: 22px 24px; margin-bottom: 14px;
   }
   .hero-main { min-width: 0; }
-  .hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px 24px; flex-wrap: wrap; }
+  /* 今月・今週の行と同じ考え方で、右側(単位の選択と比較値)に列を確保する。
+     折り返しに任せると、左の数字の量しだいで比較値が下へ回り込んでしまうため。 */
+  .hero-top { display: grid; grid-template-columns: minmax(0, 1fr) max-content; align-items: start; gap: 10px 24px; }
   .hero-now { min-width: 0; }
   /* ヒーロー右上。単位の切り替えを上に、その下に前期間の比較値を置く */
-  .hero-side { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; margin-left: auto; }
+  .hero-side { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
   .hero-tools { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
   /* 右端の比較用(ひとつ前の期間の総重量)。今の値を主役に保つため、色も大きさも控えめにする */
   .hero-prev { text-align: right; }
@@ -179,7 +181,8 @@
   @media (max-width: 560px) {
     /* 見出しの下に回り込むので、右寄せをやめて左からゆったり並べる */
     .head-right { justify-content: flex-start; width: 100%; }
-    /* 大きな数字の横には収まらないので、下に1行として置く(単位の選択は左、比較値は右) */
+    /* 大きな数字の横には収まらないので、1列にして下に1行として置く(単位の選択は左、比較値は右) */
+    .hero-top { grid-template-columns: minmax(0, 1fr); }
     .hero-side { flex-direction: row; align-items: flex-end; justify-content: space-between;
       width: 100%; gap: 12px; }
     .hero-row { grid-template-columns: 56px 1fr; }
