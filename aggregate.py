@@ -235,83 +235,26 @@ def build_data(data: dict, today: date | None = None) -> dict:
         "weeklyTargetCount": g.get("weeklyTargetCount", 3),
     }
 
-    # --- KPI: 今週の回数 ---
-    this_week_start = _monday(anchor)
-    this_week_count = len({w["date"] for w in bk.workouts.values()
-                           if _monday(_pdate(w["date"])) == this_week_start})
-
     # --- 直近ワークアウト(最新5件) ---
     recent = _recent_workouts(bk, limit=5)
 
-    # --- ヒーロー: 総挙上量(今週・今月) ---
-    # calendar(日別の総挙上量)から期間で切り出す。比較相手は「先週/先月の同じ時点まで」に
-    # そろえる。進行中の今週・今月を、まるごと終わった先週・先月と比べると必ず負けて見えるため。
-    workout_dates = {_pdate(w["date"]) for w in bk.workouts.values()}
-
+    # --- ヒーロー: 総挙上量(今週・今月・今年) ---
+    # calendar(日別の総挙上量)から期間で切り出すだけ。
+    # 前期間との増減や実施日数は画面に出さないことにしたので算出もしない(2026-07-25)。
     def _lifted(d_from: date, d_to: date) -> float:
         """d_from 〜 d_to(両端を含む)の総挙上量 kg。"""
         return round(sum(v for k, v in calendar.items() if d_from <= _pdate(k) <= d_to), 1)
 
-    def _days(d_from: date, d_to: date) -> int:
-        """d_from 〜 d_to(両端を含む)にワークアウトを行った日数。"""
-        return sum(1 for d in workout_dates if d_from <= d <= d_to)
-
-    week_from = _monday(anchor)
-    prev_week_from = week_from - timedelta(days=7)
-    month_from = anchor.replace(day=1)
-    prev_month_to_full = month_from - timedelta(days=1)          # 先月の末日
-    prev_month_from = prev_month_to_full.replace(day=1)
-    # 先月の「同じ日」まで。先月が短くて同じ日が無い場合(例: 3/31 に対する 2月)は末日で止める。
-    prev_month_to = prev_month_from + timedelta(days=min(anchor.day, prev_month_to_full.day) - 1)
-    year_from = date(anchor.year, 1, 1)
-    prev_year_from = date(anchor.year - 1, 1, 1)
-    try:                              # 昨年の同じ月日まで(2/29 は昨年に無いので 2/28 に丸める)
-        prev_year_to = anchor.replace(year=anchor.year - 1)
-    except ValueError:
-        prev_year_to = date(anchor.year - 1, 2, 28)
     lifted = {
-        "week": _lifted(week_from, anchor),
-        "weekPrev": _lifted(prev_week_from, prev_week_from + timedelta(days=anchor.weekday())),
-        "weekDays": _days(week_from, anchor),
-        "month": _lifted(month_from, anchor),
-        "monthPrev": _lifted(prev_month_from, prev_month_to),
-        "monthDays": _days(month_from, anchor),
+        "week": _lifted(_monday(anchor), anchor),
+        "month": _lifted(anchor.replace(day=1), anchor),
         "monthLabel": f"{anchor.month}月",
-        "year": _lifted(year_from, anchor),
-        "yearPrev": _lifted(prev_year_from, prev_year_to),
-        "yearDays": _days(year_from, anchor),
+        "year": _lifted(date(anchor.year, 1, 1), anchor),
         "yearLabel": f"{anchor.year}年",
         "asOf": anchor.isoformat(),
     }
 
-    # --- BIG3 推定1RM合計(「成長の証拠」カード用) ---
-    big3_vals = [v for v in big3_series if v is not None]
-    big3_total = big3_vals[-1] if big3_vals else None
-    # 差は「12ヶ月前(対象期間の最初の週)」との比較。当時データが無ければ None(=表示は「—」)。
-    big3_base = big3_series[0]
-    big3_delta = round(big3_total - big3_base, 1) if (big3_total is not None and big3_base is not None) else None
-
     ai = _ai_plan(bk)
-
-    # --- KPI: 最新体重と前回差・週目標の連続達成 ---
-    body_sorted = sorted([b for b in bk.body if b.get("weightKg") is not None], key=lambda b: b["date"])
-    latest_weight = body_sorted[-1] if body_sorted else None
-    weight_delta = None
-    if latest_weight and len(body_sorted) >= 2:
-        weight_delta = round(latest_weight["weightKg"] - body_sorted[-2]["weightKg"], 1)
-    # 連続達成: 直近の週から遡り、週の実施回数が目標以上の週が何週続くか(今週=進行中は除く)
-    count_by_week = [0] * N_WEEKS
-    for w in bk.workouts.values():
-        wi = _week_index(weeks, _pdate(w["date"]))
-        if wi is not None:
-            count_by_week[wi] += 1
-    goal_cnt = goal["weeklyTargetCount"] or 3
-    streak = 0
-    for wi in range(N_WEEKS - 2, -1, -1):  # 最終週(今週)は進行中なので除外
-        if count_by_week[wi] >= goal_cnt:
-            streak += 1
-        else:
-            break
 
     return {
         "weeks": week_iso,
@@ -329,18 +272,12 @@ def build_data(data: dict, today: date | None = None) -> dict:
         "weightSeries": weight_series,
         "fatSeries": fat_series,
         "goal": goal,
-        "thisWeekCount": this_week_count,
         "pr": sorted(pr.values(), key=lambda x: (x["e1rm"] is not None, x["e1rm"] or 0),
                      reverse=True),
         "recent": recent,
         "anchor": anchor.isoformat(),
         "lifted": lifted,
-        "big3Total": big3_total,
-        "big3Delta": big3_delta,
         "aiPlan": ai,
-        "latestWeight": latest_weight,
-        "weightDelta": weight_delta,
-        "streak": streak,
     }
 
 
@@ -452,12 +389,10 @@ if __name__ == "__main__":
         d = build_data(json.load(f))
     print(f"対象週: {d['weeks'][0]} 〜 {d['weeks'][-1]} ({len(d['weeks'])}週)")
     lf = d['lifted']
-    print(f"総挙上量: 今週 {lf['week']:,.0f}kg({lf['weekDays']}日) / 先週同曜日まで {lf['weekPrev']:,.0f}kg")
-    print(f"          今月 {lf['month']:,.0f}kg({lf['monthDays']}日) / 先月同日まで {lf['monthPrev']:,.0f}kg")
-    print(f"          今年 {lf['year']:,.0f}kg({lf['yearDays']}日) / 昨年同日まで {lf['yearPrev']:,.0f}kg")
+    print(f"総挙上量: 今週 {lf['week']:,.0f}kg / 今月 {lf['month']:,.0f}kg / 今年 {lf['year']:,.0f}kg")
     print(f"BIG3 種目ID: {d['big3Ids']}")
-    print(f"BIG3 推定1RM合計(最新): {d['big3Total']} kg(12ヶ月差 {d['big3Delta']})")
-    print(f"今週の回数: {d['thisWeekCount']} / 目標 {d['goal']['weeklyTargetCount']}")
+    b3 = [v for v in d['big3Series'] if v is not None]
+    print(f"BIG3 推定1RM合計: 最新 {b3[-1] if b3 else None} kg(12ヶ月前 {d['big3Series'][0]})")
     print(f"体重(週平均・直近で非None): "
           f"{next((v for v in reversed(d['weightSeries']) if v is not None), None)} kg / "
           f"目標 {d['goal']['targetWeightKg']}(方向 {d['goal']['direction']})")

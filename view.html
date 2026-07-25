@@ -119,8 +119,6 @@
   .hero-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
   .hero-big { font-size: 52px; font-weight: 800; line-height: 1.02; letter-spacing: -0.01em; margin: 6px 0 2px; }
   .hero-big .unit { font-size: 22px; font-weight: 600; color: var(--ink-2); margin-left: 4px; }
-  .hero-sub { font-size: 12.5px; color: var(--ink-2); margin-top: 6px; }
-  .hero-sub .up { color: var(--good); font-weight: 600; }
 
   /* 総挙上量の「◯◯何台ぶん」表示。アイコンを実数ぶん並べ、端数は半分だけ塗る */
   .equiv { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
@@ -163,28 +161,6 @@
   @media (max-width: 760px) {
     .hero-big { font-size: 42px; }
   }
-
-  /* ---------- BIG3 推定1RM合計(成長の証拠) ---------- */
-  .big3-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
-  .big3-total { font-size: 34px; font-weight: 800; line-height: 1.05; letter-spacing: -0.01em; }
-  .big3-total .unit { font-size: 16px; font-weight: 600; color: var(--ink-2); margin-left: 3px; }
-  .big3-delta { font-size: 12.5px; color: var(--ink-2); margin-top: 3px; }
-  .big3-delta .up { color: var(--good); font-weight: 600; }
-
-  /* ---------- demoted KPI row ---------- */
-  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 22px; }
-  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 13px 15px; }
-  .kpi .label { font-size: 11.5px; color: var(--ink-2); margin-bottom: 3px; }
-  .kpi .row { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
-  .kpi .value { font-size: 24px; font-weight: 700; line-height: 1.2; }
-  .kpi .value small { font-size: 14px; font-weight: 500; color: var(--ink-2); }
-  .kpi .delta { font-size: 11.5px; color: var(--ink-2); margin-top: 1px; }
-  .kpi .delta .good { color: var(--good); font-weight: 600; }
-  /* 週の目標回数ぶんの丸を並べ、実施ぶんを塗る。横いっぱいの帯にすると
-     横スクロールバーに見えてしまうため、左詰めの小さな丸で表す。 */
-  .pips { margin-top: 9px; display: flex; gap: 5px; }
-  .pips > span { width: 10px; height: 10px; border-radius: 50%; background: var(--track); }
-  .pips > span.on { background: var(--good); }
 
   /* ---------- sticky in-page nav ---------- */
   .nav { position: sticky; top: 0; z-index: 20; background: var(--page); border-bottom: 1px solid var(--grid); margin: 0 -20px 22px; padding: 0 20px; }
@@ -312,13 +288,9 @@
       <div class="hero-eyebrow"><span id="lift-month-label">今月</span> 持ち上げた総重量</div>
       <div class="hero-big"><span id="lift-month">—</span><span class="unit">kg</span></div>
       <div class="equiv" id="lift-month-equiv"></div>
-      <div class="hero-sub" id="lift-month-sub"></div>
       <div class="hero-rows" id="hero-rows"></div>
     </div>
   </div>
-
-  <!-- 控えめKPI -->
-  <div class="kpis" id="kpis"></div>
 
   <!-- sticky nav -->
   <nav class="nav" aria-label="セクション">
@@ -340,27 +312,11 @@
   <section class="block" id="sec-growth">
     <div class="sec-head"><h2>成長の証拠</h2><span class="sec-note">強くなった量を追う</span></div>
 
-    <div class="card big3" style="margin-bottom:14px">
-      <div class="chart-head">
-        <div>
-          <div class="chart-title">BIG3 推定1RM合計</div>
-          <div class="chart-sub">ベンチプレス・スクワット・デッドリフトの推定1RM(1回だけ挙げられる最大重量の推定値)の合計</div>
-        </div>
-      </div>
-      <div class="big3-row">
-        <div>
-          <div class="big3-total"><span id="big3-total">—</span><span class="unit">kg</span></div>
-          <div class="big3-delta" id="big3-delta"></div>
-        </div>
-        <svg id="big3-spark" width="230" height="56" aria-hidden="true"></svg>
-      </div>
-    </div>
-
     <div class="card" style="margin-bottom:14px">
       <div class="chart-head">
         <div>
-          <div class="chart-title">重量の推移(<span id="wtitle-strength">直近12ヶ月</span>)</div>
-          <div class="chart-sub">週ごとのトップセット(いちばん重いセット)と、そこから換算した推定1RM</div>
+          <div class="chart-title"><span id="stitle-strength">重量</span>の推移(<span id="wtitle-strength">直近12ヶ月</span>)</div>
+          <div class="chart-sub" id="ssub-strength"></div>
         </div>
         <div class="head-tools">
           <div class="range-seg" id="strength-range" role="group" aria-label="表示期間">
@@ -368,15 +324,13 @@
             <button type="button" data-weeks="26" aria-pressed="false">6ヶ月</button>
             <button type="button" data-weeks="52" aria-pressed="true">12ヶ月</button>
           </div>
-          <select class="exsel" id="exsel" aria-label="種目を選択">
-            <option value="bench" selected>ベンチプレス</option>
+          <select class="exsel" id="exsel" aria-label="表示する記録を選択">
+            <option value="big3" selected>BIG3 推定1RM合計</option>
+            <option value="bench">ベンチプレス</option>
             <option value="squat">スクワット</option>
             <option value="deadlift">デッドリフト</option>
           </select>
-          <div class="legend">
-            <span class="key"><i class="lk-line c1"></i>トップセット重量</span>
-            <span class="key"><i class="lk-line c2"></i>推定1RM</span>
-          </div>
+          <div class="legend" id="legend-strength"></div>
           <button class="ghost-btn" data-toggle="strength">表で見る</button>
         </div>
       </div>
@@ -457,7 +411,7 @@
 </div>
 
 <!-- ビルド時にこの下の window.__DATA__ が実データ(aggregate.build_data の出力)へ置き換わる。 -->
-<script id="__data__">window.__DATA__ = window.__DATA__ || {"weeks":[],"big3Ids":{},"big3Series":[],"perExercise":{},"exerciseNames":{},"volumeWeek":[],"monthlyLabels":[],"monthlyRows":[],"partOrder":[],"partLabel":{},"calendar":{},"weightSeries":[],"fatSeries":[],"goal":{},"thisWeekCount":0,"pr":[],"recent":[],"anchor":null,"lifted":null,"big3Total":null,"big3Delta":null,"aiPlan":null,"latestWeight":null,"weightDelta":null,"streak":0};</script>
+<script id="__data__">window.__DATA__ = window.__DATA__ || {"weeks":[],"big3Ids":{},"big3Series":[],"perExercise":{},"exerciseNames":{},"volumeWeek":[],"monthlyLabels":[],"monthlyRows":[],"partOrder":[],"partLabel":{},"calendar":{},"weightSeries":[],"fatSeries":[],"goal":{},"pr":[],"recent":[],"anchor":null,"lifted":null,"aiPlan":null};</script>
 <script>
 (() => {
   "use strict";
@@ -476,11 +430,18 @@
   const SEL2KEY = { bench: "bench", squat: "squat", deadlift: "dead" };
   const SEL_LABEL = { bench: "ベンチプレス", squat: "スクワット", deadlift: "デッドリフト" };
   function exSeries(selKey) {
+    // 「BIG3 推定1RM合計」は3種目の推定1RM を足した値なので、
+    // 1種目のときのような「トップセット重量」に相当するものが無い。
+    // top を null で返し、グラフ・凡例・表を1本だけの表示に切り替える合図にする。
+    if (selKey === "big3") {
+      return { name: "BIG3", metric: "推定1RM合計", top: null, e1rm: (DATA.big3Series || []).slice() };
+    }
     const k = SEL2KEY[selKey] || selKey;
     const exId = DATA.big3Ids[k];
     const name = (exId != null && DATA.exerciseNames[String(exId)]) || SEL_LABEL[selKey] || selKey;
     const cells = (exId != null && DATA.perExercise[String(exId)]) || new Array(N_WEEKS).fill(null);
-    return { name, top: cells.map((c) => (c ? c.top : null)), e1rm: cells.map((c) => (c ? c.e1rm : null)) };
+    return { name, metric: "推定1RM",
+             top: cells.map((c) => (c ? c.top : null)), e1rm: cells.map((c) => (c ? c.e1rm : null)) };
   }
 
   const bodyW = DATA.weightSeries;   // null(未測定の週)を含みうる
@@ -700,30 +661,6 @@
     host.appendChild(grid);
   }
 
-  function sparkline(svg, vals, opt) {
-    svg.textContent = "";
-    const W = +svg.getAttribute("width"), H = +svg.getAttribute("height"), p = opt.pad || 5;
-    // 欠測(null)を除いた実データ点のみで描く。1点しか無ければ点だけ、0点なら何も描かない。
-    const pts = [];
-    vals.forEach((v, i) => { if (v != null) pts.push([i, v]); });
-    if (!pts.length) return;
-    const present = pts.map(([, v]) => v);
-    const min = Math.min(...present), max = Math.max(...present), n = vals.length;
-    const X = (i) => p + (n <= 1 ? 0 : (i * (W - p * 2 - 6)) / (n - 1));
-    const Y = (v) => p + (1 - (v - min) / (max - min || 1)) * (H - p * 2);
-    if (opt.area && pts.length > 1) {
-      const d0 = pts.map(([i, v], k) => `${k ? "L" : "M"}${X(i)},${Y(v)}`).join("")
-        + `L${X(pts[pts.length - 1][0])},${H - p}L${X(pts[0][0])},${H - p}Z`;
-      el("path", { d: d0, fill: opt.color, opacity: 0.12 }, svg);
-    }
-    if (pts.length > 1) {
-      const d = pts.map(([i, v], k) => `${k ? "L" : "M"}${X(i)},${Y(v)}`).join("");
-      el("path", { d, fill: "none", stroke: opt.color, "stroke-width": opt.width || 2, "stroke-linecap": "round", "stroke-linejoin": "round" }, svg);
-    }
-    const [li, lv] = pts[pts.length - 1];
-    el("circle", { cx: X(li), cy: Y(lv), r: 3.5, fill: opt.color, stroke: "var(--surface)", "stroke-width": 2 }, svg);
-  }
-
   function buildTable(sel, headers, rows) {
     const wrap = $(sel); wrap.textContent = "";
     const t = document.createElement("table"); t.className = "data";
@@ -859,153 +796,34 @@
     requestAnimationFrame(tick);
   }
 
-  /** 「先週/先月の同じ時点」と比べた増減の文言。比較対象が 0 のときは null(比較を出さない)。 */
-  function liftedDelta(cur, prev, label) {
-    if (!prev) return null;
-    const pct = Math.round(((cur - prev) / prev) * 100);
-    if (pct === 0) return `${label}と同じペース`;
-    return `${label}より ${pct > 0 ? "+" : ""}${pct}%`;
-  }
-
-  // ---- HERO(持ち上げた総重量 + お祝い + 次の予定) ----
+  // ---- HERO(持ち上げた総重量) ----
   function renderHero() {
     const lf = DATA.lifted || {};
     const unit = pickEquivUnit(lf.month || 0);
     $("#lift-month-label").textContent = lf.monthLabel || "今月";
     countUp($("#lift-month"), lf.month);
     renderEquiv($("#lift-month-equiv"), lf.month, 28, 12, unit);
-    {
-      const parts = [];
-      const d = liftedDelta(lf.month, lf.monthPrev, "先月の同じ時期");
-      if (d) parts.push(d);
-      if (lf.monthDays) parts.push(`トレーニング ${lf.monthDays}日`);
-      const sub = $("#lift-month-sub"); sub.textContent = "";
-      if (parts.length) {
-        const up = document.createElement("span");
-        if (d && lf.month >= lf.monthPrev) up.className = "up";
-        up.textContent = parts[0];
-        sub.appendChild(up);
-        if (parts.length > 1) sub.appendChild(document.createTextNode(" ・ " + parts.slice(1).join(" ・ ")));
-      } else {
-        sub.textContent = "本番セットの「重量 × 回数」の合計(ウォームアップは除く)";
-      }
-    }
     // 今週・今年ぶん(下段)
     // 今週は今月と同じ単位でそろえる(スケールが近く、大小を比べたいため)。
     // 今年は桁が1つ2つ上がるので、自分に合う単位を選び直す(アイコンが並びすぎないように)。
-    {
-      const rows = $("#hero-rows"); rows.textContent = "";
-      [
-        { label: "今週", kg: lf.week, prev: lf.weekPrev, prevLabel: "先週の同じ曜日",
-          unit: stepDownWhileTiny(unit, lf.week || 0), max: 6 },
-        { label: lf.yearLabel || "今年", kg: lf.year, prev: lf.yearPrev, prevLabel: "昨年の同じ時期",
-          unit: null, days: lf.yearDays, max: 6 },
-      ].forEach((r) => {
-        const row = document.createElement("div"); row.className = "hero-row";
-        const lab = document.createElement("span"); lab.className = "w-label"; lab.textContent = r.label;
-        const val = document.createElement("span"); val.className = "w-val";
-        const num = document.createElement("span"); val.appendChild(num);
-        const small = document.createElement("small"); small.textContent = "kg"; val.appendChild(small);
-        countUp(num, r.kg);
-        const right = document.createElement("div"); right.className = "w-right";
-        const eq = document.createElement("div"); eq.className = "equiv";
-        renderEquiv(eq, r.kg, 20, r.max, r.unit);
-        right.appendChild(eq);
-        const notes = [];
-        const d = liftedDelta(r.kg, r.prev, r.prevLabel);
-        if (d) notes.push(d);
-        if (r.days) notes.push(`トレーニング ${r.days}日`);
-        if (notes.length) {
-          const dd = document.createElement("span"); dd.className = "w-delta"; dd.textContent = notes.join(" ・ ");
-          right.appendChild(dd);
-        }
-        row.appendChild(lab); row.appendChild(val); row.appendChild(right);
-        rows.appendChild(row);
-      });
-    }
-
-  }
-
-  // ---- BIG3 推定1RM合計(成長の証拠) ----
-  function renderBig3() {
-    $("#big3-total").textContent = DATA.big3Total == null ? "—" : (Math.round(DATA.big3Total * 10) / 10).toLocaleString();
-    const dl = DATA.big3Delta, host = $("#big3-delta"); host.textContent = "";
-    if (dl == null) {
-      host.textContent = "記録が増えると12ヶ月前との差を表示します";
-    } else {
-      const up = document.createElement("span"); up.className = dl >= 0 ? "up" : "";
-      up.textContent = `${dl >= 0 ? "▲ +" : "▼ "}${dl}kg`;
-      host.appendChild(up);
-      host.appendChild(document.createTextNode(" (12ヶ月前と比べて)"));
-    }
-    sparkline($("#big3-spark"), DATA.big3Series, { color: "var(--accent)", width: 2.5, area: true, pad: 7 });
-  }
-
-  // ---- 控えめKPI ----
-  function renderKpis() {
-    const host = $("#kpis"); host.textContent = "";
-    const goalCnt = G.weeklyTargetCount || 3;
-    // 1) 今週のワークアウト
-    {
-      const cnt = DATA.thisWeekCount || 0, remain = Math.max(0, goalCnt - cnt);
-      const k = document.createElement("div"); k.className = "kpi";
-      const lbl = document.createElement("div"); lbl.className = "label"; lbl.textContent = "今週のワークアウト";
-      const val = document.createElement("div"); val.className = "value"; val.textContent = String(cnt);
-      const small = document.createElement("small"); small.textContent = ` / ${goalCnt} 回`; val.appendChild(small);
-      const delta = document.createElement("div"); delta.className = "delta";
-      delta.textContent = remain > 0 ? `週の目標まで あと${remain}回` : "今週の目標を達成";
-      k.appendChild(lbl); k.appendChild(val); k.appendChild(delta);
-      // 目標回数ぶんの丸を並べ、実施ぶんを塗る。目標を上回った回数も丸を足して見せる。
-      // 目標が極端に多い場合(週12回超)は丸が並びすぎるので出さない(文言だけで足りる)。
-      const slots = Math.max(goalCnt, cnt);
-      if (slots <= 12) {
-        const pips = document.createElement("div"); pips.className = "pips";
-        pips.setAttribute("role", "img");
-        pips.setAttribute("aria-label", `週${goalCnt}回のうち${cnt}回実施`);
-        for (let i = 0; i < slots; i++) {
-          const s = document.createElement("span"); if (i < cnt) s.className = "on"; pips.appendChild(s);
-        }
-        k.appendChild(pips);
-      }
-      host.appendChild(k);
-    }
-    // 2) 最新体重(+ 前回差・目標まで・スパークライン)
-    {
-      const lw = DATA.latestWeight;
-      const k = document.createElement("div"); k.className = "kpi";
-      const lbl = document.createElement("div"); lbl.className = "label";
-      lbl.textContent = lw ? `最新体重(${fmtMD(parseYMD(lw.date))})` : "最新体重";
-      const row = document.createElement("div"); row.className = "row";
-      const left = document.createElement("div");
-      const val = document.createElement("div"); val.className = "value"; val.textContent = lw ? trimN(lw.weightKg) : "—";
-      const small = document.createElement("small"); small.textContent = " kg"; val.appendChild(small);
-      const delta = document.createElement("div"); delta.className = "delta";
-      const parts = [];
-      if (DATA.weightDelta != null) parts.push(`${DATA.weightDelta >= 0 ? "+" : ""}${DATA.weightDelta}kg 前回比`);
-      if (lw && G.targetWeightKg != null) {
-        const rem = Math.round((G.targetWeightKg - lw.weightKg) * 10) / 10;
-        parts.push(Math.abs(rem) < 0.05 ? "目標達成" : `目標まで ${rem >= 0 ? "+" : ""}${rem}kg`);
-      }
-      delta.textContent = parts.join(" ・ ") || "前回との比較はまだありません";
-      left.appendChild(val); left.appendChild(delta);
-      const spark = el("svg", { id: "spark-weight", width: "80", height: "32", "aria-hidden": "true" }, null);
-      row.appendChild(left); row.appendChild(spark);
-      k.appendChild(lbl); k.appendChild(row);
-      host.appendChild(k);
-    }
-    // 3) 週目標の連続達成
-    {
-      const st = DATA.streak || 0;
-      const k = document.createElement("div"); k.className = "kpi";
-      const lbl = document.createElement("div"); lbl.className = "label"; lbl.textContent = "週目標の連続達成";
-      const val = document.createElement("div"); val.className = "value"; val.textContent = String(st);
-      const small = document.createElement("small"); small.textContent = " 週連続"; val.appendChild(small);
-      const delta = document.createElement("div"); delta.className = "delta";
-      delta.textContent = st > 0 ? `週${goalCnt}回を達成できた週が続いています` : `まずは週${goalCnt}回の達成を目指しましょう`;
-      k.appendChild(lbl); k.appendChild(val); k.appendChild(delta);
-      host.appendChild(k);
-    }
-    sparkline($("#spark-weight"), bodyW.slice(-12), { color: "var(--accent)", width: 2 });
+    const rows = $("#hero-rows"); rows.textContent = "";
+    [
+      { label: "今週", kg: lf.week, unit: stepDownWhileTiny(unit, lf.week || 0) },
+      { label: lf.yearLabel || "今年", kg: lf.year, unit: null },
+    ].forEach((r) => {
+      const row = document.createElement("div"); row.className = "hero-row";
+      const lab = document.createElement("span"); lab.className = "w-label"; lab.textContent = r.label;
+      const val = document.createElement("span"); val.className = "w-val";
+      const num = document.createElement("span"); val.appendChild(num);
+      const small = document.createElement("small"); small.textContent = "kg"; val.appendChild(small);
+      countUp(num, r.kg);
+      const right = document.createElement("div"); right.className = "w-right";
+      const eq = document.createElement("div"); eq.className = "equiv";
+      renderEquiv(eq, r.kg, 20, 6, r.unit);
+      right.appendChild(eq);
+      row.appendChild(lab); row.appendChild(val); row.appendChild(right);
+      rows.appendChild(row);
+    });
   }
 
   // ---- AI週間プラン ----
@@ -1109,16 +927,39 @@
     });
   }
 
-  const state = { exercise: "bench", bodyWeeks: N_WEEKS, strengthWeeks: N_WEEKS };
+  // 凡例(グラフの色と系列名の対応)は、選んだ内容で本数が変わるので毎回組み立て直す
+  function setLegend(series) {
+    const host = $("#legend-strength"); host.textContent = "";
+    series.forEach((s) => {
+      const key = document.createElement("span"); key.className = "key";
+      const bar = document.createElement("i"); bar.className = "lk-line c" + s.cls; key.appendChild(bar);
+      key.appendChild(document.createTextNode(s.label));
+      host.appendChild(key);
+    });
+  }
+
+  const STRENGTH_SUB = {
+    big3: "ベンチプレス・スクワット・デッドリフトの推定1RM(1回だけ挙げられる最大重量の推定値)を足した値。記録が無い週は直前の値をそのまま引き継ぐ",
+    each: "週ごとのトップセット(いちばん重いセット)と、そこから換算した推定1RM",
+  };
+  const state = { exercise: "big3", bodyWeeks: N_WEEKS, strengthWeeks: N_WEEKS };
   function renderAll() {
     const k = state.strengthWeeks, ds = weeks.slice(-k);
     const ex = exSeries(state.exercise);
-    const w = ex.top.slice(-k), rm = ex.e1rm.slice(-k);
+    const isTotal = ex.top == null;   // BIG3 合計を選んでいる(系列は推定1RM の1本だけ)
+    const w = isTotal ? null : ex.top.slice(-k), rm = ex.e1rm.slice(-k);
+    $("#stitle-strength").textContent = isTotal ? "BIG3 推定1RM合計" : "重量";
     $("#wtitle-strength").textContent = monthsLabel(k);
+    $("#ssub-strength").textContent = isTotal ? STRENGTH_SUB.big3 : STRENGTH_SUB.each;
 
-    lineChart("#chart-strength", { dates: ds, height: 300, aria: ex.name + "の重量推移",
-      series: [ { label: "トップセット重量", cls: 1, values: w, unit: "kg", area: true }, { label: "推定1RM", cls: 2, values: rm, unit: "kg" } ] });
-    // インサイト: 記録がある週だけで前回との差を見る(記録が少なくても破綻しない)
+    const series = isTotal
+      ? [{ label: "推定1RM合計", cls: 2, values: rm, unit: "kg", area: true }]
+      : [{ label: "トップセット重量", cls: 1, values: w, unit: "kg", area: true },
+         { label: "推定1RM", cls: 2, values: rm, unit: "kg" }];
+    setLegend(series);
+    lineChart("#chart-strength", { dates: ds, height: 300, series,
+      aria: isTotal ? "BIG3 推定1RM合計の推移" : ex.name + "の重量推移" });
+    // インサイト: 記録がある週だけで差を見る(記録が少なくても破綻しない)
     {
       const box = $("#insight-strength"); box.textContent = "";
       const ico = iconEl("trendUp", 15); ico.classList.add("ico"); box.appendChild(ico);
@@ -1127,22 +968,31 @@
       if (present.length === 0) {
         txt.textContent = `${ex.name}の記録はまだありません。アプリで記録すると、ここに推移が表示されます。`;
       } else if (present.length === 1) {
-        txt.textContent = `${ex.name}の推定1RMは現在 `;
+        txt.textContent = `${ex.name}の${ex.metric}は現在 `;
         const b = document.createElement("b"); b.textContent = `${present[0]}kg`; txt.appendChild(b);
         txt.appendChild(document.createTextNode("。記録が増えると変化を追えるようになります。"));
       } else {
-        const cur = present[present.length - 1], prev = present[present.length - 2];
+        // BIG3 合計は記録が無い週も直前の値を引き継ぐため「前回」との差がほぼ 0 になってしまう。
+        // そこで合計のときだけ、表示している期間の最初の値と比べる。
+        const cur = present[present.length - 1];
+        const prev = isTotal ? present[0] : present[present.length - 2];
         const diff = Math.round((cur - prev) * 10) / 10;
         const judge = diff >= 1 ? "伸びています。" : diff <= -1 ? "やや下がっています。" : "横ばいです。";
-        txt.textContent = `${ex.name}の推定1RMは前回から `;
+        txt.textContent = `${ex.name}の${ex.metric}は${isTotal ? monthsLabel(k) + "で " : "前回から "}`;
         const b = document.createElement("b"); b.textContent = `${diff >= 0 ? "+" : ""}${diff}kg`; txt.appendChild(b);
         txt.appendChild(document.createTextNode(`(現在 ${cur}kg)。${judge}`));
       }
       box.appendChild(txt);
     }
-    buildTable("#table-strength", [{ label: "週" }, { label: "トップセット", num: true }, { label: "推定1RM", num: true }],
-      ds.map((d, i) => [fmtMD(d) + "週", w[i] == null ? "—" : w[i] + "kg", rm[i] == null ? "—" : rm[i] + "kg"])
-        .filter((r) => r[1] !== "—" || r[2] !== "—").reverse());
+    if (isTotal) {
+      buildTable("#table-strength", [{ label: "週" }, { label: "推定1RM合計", num: true }],
+        ds.map((d, i) => [fmtMD(d) + "週", rm[i] == null ? "—" : rm[i] + "kg"])
+          .filter((r) => r[1] !== "—").reverse());
+    } else {
+      buildTable("#table-strength", [{ label: "週" }, { label: "トップセット", num: true }, { label: "推定1RM", num: true }],
+        ds.map((d, i) => [fmtMD(d) + "週", w[i] == null ? "—" : w[i] + "kg", rm[i] == null ? "—" : rm[i] + "kg"])
+          .filter((r) => r[1] !== "—" || r[2] !== "—").reverse());
+    }
 
     renderBody(state.bodyWeeks);
 
@@ -1291,8 +1141,6 @@
     }
   }
   safeRender("ヒーロー", ".hero-main", renderHero);
-  safeRender("BIG3", ".big3", renderBig3);
-  safeRender("KPI", "#kpis", renderKpis);
   safeRender("AI週間プラン", "#ai-plan-card", renderAiPlan);
   safeRender("自己ベスト", null, renderPR);
   safeRender("直近のワークアウト", null, renderRecent);
