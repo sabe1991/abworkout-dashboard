@@ -86,14 +86,15 @@
   .wrap { max-width: 1080px; margin: 0 auto; padding: 24px 20px 72px; }
 
   /* ---------- header ---------- */
-  header.site { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+  header.site { display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; margin-bottom: 22px; }
   .site .brand { font-size: 15px; font-weight: 600; letter-spacing: 0.02em; color: var(--ink-2); }
   .site .brand b { color: var(--ink); font-weight: 700; }
-  .head-right { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; }
-  .sync { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11.5px; }
+  /* 「最新の記録」とテーマ切り替えは、縦に積むと窮屈に見えるので横に並べる(幅が足りなければ折り返す)。 */
+  .head-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px 16px; flex-wrap: wrap; }
+  .sync { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; }
   .sync .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); display: inline-block; }
   .theme-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-  .theme-seg button { font: inherit; font-size: 11.5px; color: var(--ink-2); background: var(--surface); border: none; padding: 3px 11px; cursor: pointer; }
+  .theme-seg button { font: inherit; font-size: 12px; color: var(--ink-2); background: var(--surface); border: none; padding: 5px 13px; cursor: pointer; }
   .theme-seg button + button { border-left: 1px solid var(--border); }
   .theme-seg button:hover { color: var(--ink); }
   .theme-seg button[aria-pressed="true"] { color: var(--surface); background: var(--ink); font-weight: 600; }
@@ -151,6 +152,12 @@
   .equiv-icons .part .fill { position: absolute; left: 0; top: 0; overflow: hidden; }
   .equiv-label { font-size: 13.5px; font-weight: 600; white-space: nowrap; }
   .equiv-label .n { font-size: 17px; font-weight: 800; }
+  /* 3行に収まらないときの省略。「🚗🚗🚗.....🚗」のように途中だけを点で省く */
+  .equiv-gap { align-self: flex-end; color: var(--ink-2); letter-spacing: 2px; line-height: 1;
+    font-size: 13px; padding: 0 3px 3px; user-select: none; }
+  /* 単位の切り替え。3つの期間をすべて同じ単位で見たいときに使う */
+  .hero-foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+    margin-top: 12px; font-size: 12px; color: var(--muted); }
 
   /* 今週・今年ぶん(ヒーロー下段) */
   .hero-rows { margin-top: 14px; padding-top: 4px; border-top: 1px solid var(--border); }
@@ -166,6 +173,8 @@
   .hero-row .equiv-label { font-size: 12.5px; font-weight: 500; color: var(--ink-2); }
   .hero-row .equiv-label .n { font-size: 14px; font-weight: 700; color: var(--ink); }
   @media (max-width: 560px) {
+    /* 見出しの下に回り込むので、右寄せをやめて左からゆったり並べる */
+    .head-right { justify-content: flex-start; width: 100%; }
     .hero-row { grid-template-columns: 56px 1fr; }
     .hero-row .w-val { justify-self: start; }
     .hero-row .w-right { grid-column: 2; }
@@ -324,6 +333,10 @@
         <div class="hero-prev" id="lift-hero-prev"></div>
       </div>
       <div class="hero-rows" id="hero-rows"></div>
+      <div class="hero-foot">
+        <label for="equiv-unit">たとえる単位</label>
+        <select class="exsel" id="equiv-unit"></select>
+      </div>
     </div>
   </div>
 
@@ -766,46 +779,112 @@
     span.innerHTML = `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${EQUIV_ICONS[name] || ""}</svg>`;
     return span;
   }
+  // 画面で選んだ単位。null なら期間ごとに自動で選ぶ(既定)。
+  let forcedUnit = null;
+  const ICON_ROWS = 3;   // アイコンを並べる行数の上限
+  /** 3行に収まりそうな個数の「上限の見当」。
+      置き場所そのもの(.equiv)は中身の量で幅が伸び縮みするので測っても当てにならない。
+      幅が中身に左右されないカード(.hero-main)を基準にして、多すぎない出発点を決める。
+      実際に3行で収まるかは、描いたあとに高さを測って詰める(fitRows)。 */
+  function iconLimit(host, size) {
+    const box = host.closest(".hero-main") || host.parentElement;
+    const w = (box && box.clientWidth) || 320;
+    return Math.max(4, Math.floor(w / (size + 3)) * ICON_ROWS);
+  }
+  /** いま何行に折り返されているかを数える。
+      高さ÷アイコンの大きさで割り出すと、アイコンの実寸が指定値と違う場合(SVG の描き方や
+      表示倍率で縮む)にずれるので、「下端の位置が近いものは同じ行」と見て数える。
+      「.....」や端数アイコンは高さが少し違って下端が数 px ずれるため、
+      ぴったり一致ではなく、アイコンの高さの半分までのずれは同じ行として扱う。 */
+  function iconRows(row) {
+    const kids = [...row.children];
+    if (!kids.length) return 1;
+    const bottoms = kids.map((el) => el.getBoundingClientRect().bottom).sort((a, b) => a - b);
+    const one = row.querySelector(".unitico") || kids[0];
+    const tol = Math.max(6, one.getBoundingClientRect().height / 2);
+    let rows = 1;
+    for (let i = 1; i < bottoms.length; i++) if (bottoms[i] - bottoms[i - 1] > tol) rows++;
+    return rows;
+  }
   /** 総挙上量 kg を「アイコンの行 + ◯◯N台ぶん」に描画する。size はアイコンの1辺(px)。
       アイコンは左から1個ずつ現れる(積み上がっていく感じを出すため)。
-      積み上げた実績そのものなので**個数は省略しない**。多いときは折り返して全部並べる。 */
+      3行に収まらないときは、途中だけを「.....」で省いて最後の1個を見せる
+      (何個ぶんかは右のラベルに必ず出るので、数が分からなくなることはない)。 */
   function renderEquiv(host, kg, size) {
     host.textContent = "";
     if (!kg) return;
-    const u = pickEquivUnit(kg);
+    const u = forcedUnit || pickEquivUnit(kg);
     const n = kg / u.kg;
     const whole = Math.floor(n);
     const frac = n - whole;
-    // 1個ずつずらして出す間隔。個数が多いときは、全体で 900ms(数字の数え上がりと同じ)に収める。
-    const step = whole > 1 ? Math.max(10, Math.min(55, 900 / whole)) : 55;
+    // 端数は 0.08 以上あれば「途中まで濃いアイコン」で見せる。
+    // 1個に届かないとき(東京タワーのような大きい単位を選んだ場合)は、
+    // 端数がごくわずかでも必ず1個ぶんの枠を出す。何も描かれないと壊れて見えるため。
+    const hasFrac = frac >= 0.08 || whole === 0;
+    const total = whole + (hasFrac ? 1 : 0);          // 並べたいアイコンの数(端数も1個と数える)
     const row = document.createElement("div"); row.className = "equiv-icons";
-    for (let i = 0; i < whole; i++) {
-      const s = document.createElement("span"); s.className = "unitico pop";
-      s.style.animationDelay = Math.round(i * step) + "ms";
-      s.appendChild(unitIcon(u.icon, size)); row.appendChild(s);
-    }
-    // 端数は、薄いアイコンの上に「左から端数ぶんだけ」濃いアイコンを重ねて表す
-    if (frac >= 0.08) {
-      const part = document.createElement("span"); part.className = "part pop";
-      part.style.animationDelay = Math.round(whole * step) + "ms";
-      const ghost = document.createElement("span"); ghost.className = "ghost";
-      ghost.appendChild(unitIcon(u.icon, size));
-      // 幅は px ではなく割合で指定する。実際に描かれるアイコンの寸法が指定値と
-      // ずれても(表示倍率などで縮む場合がある)、端数の見た目が狂わないようにするため。
-      const fill = document.createElement("span"); fill.className = "fill";
-      fill.style.width = (frac * 100) + "%"; fill.style.height = "100%";
-      fill.appendChild(unitIcon(u.icon, size));
-      part.appendChild(ghost); part.appendChild(fill); row.appendChild(part);
-    }
     host.appendChild(row);
+    // ラベル(「乗用車 12.3 台ぶん」)を先に置いてしまう。今月・今週の行ではラベルが
+    // アイコンの横に並ぶので、後から足すとアイコンに使える幅が縮んで行数がずれるため。
     const lab = document.createElement("div"); lab.className = "equiv-label";
     if (u.note) lab.title = u.note;
     const num = document.createElement("span"); num.className = "n";
-    num.textContent = (Math.round(n * 10) / 10).toLocaleString();
+    // 1個ぶんに届かないときは小数第1位では「0」になってしまうので、有効数字2桁で出す
+    // (例: 東京タワー 0.0046 基ぶん)。1以上なら今までどおり小数第1位まで。
+    num.textContent = n >= 1 ? (Math.round(n * 10) / 10).toLocaleString()
+                             : Number(n.toPrecision(2)).toLocaleString();
     lab.appendChild(document.createTextNode(u.name + " "));
     lab.appendChild(num);
     lab.appendChild(document.createTextNode(" " + u.counter));
     host.appendChild(lab);
+
+    /** limit 個までに収めてアイコンを並べ直す。 */
+    const build = (limit) => {
+      row.textContent = "";
+      const cut = total > limit;
+      const headCount = cut ? Math.max(1, limit - 1) : whole;
+      const shown = cut ? limit : total;
+      // 1個ずつずらして出す間隔。個数が多いときは、全体で 900ms(数字の数え上がりと同じ)に収める。
+      const step = shown > 1 ? Math.max(10, Math.min(55, 900 / shown)) : 55;
+      const wholeIcon = (i) => {
+        const s = document.createElement("span"); s.className = "unitico pop";
+        s.style.animationDelay = Math.round(i * step) + "ms";
+        s.appendChild(unitIcon(u.icon, size)); return s;
+      };
+      for (let i = 0; i < headCount; i++) row.appendChild(wholeIcon(i));
+      if (cut) {
+        const gap = document.createElement("span"); gap.className = "equiv-gap";
+        gap.textContent = ".....";
+        gap.title = `途中の ${total - limit + 1} 個は省略しています(全部で ${total.toLocaleString()} 個)`;
+        row.appendChild(gap);
+      }
+      // 末尾。端数があれば、薄いアイコンの上に「左から端数ぶんだけ」濃いアイコンを重ねて表す
+      if (hasFrac) {
+        const part = document.createElement("span"); part.className = "part pop";
+        part.style.animationDelay = Math.round(headCount * step) + "ms";
+        const ghost = document.createElement("span"); ghost.className = "ghost";
+        ghost.appendChild(unitIcon(u.icon, size));
+        // 幅は px ではなく割合で指定する。実際に描かれるアイコンの寸法が指定値と
+        // ずれても(表示倍率などで縮む場合がある)、端数の見た目が狂わないようにするため。
+        const fill = document.createElement("span"); fill.className = "fill";
+        fill.style.width = Math.max(frac * 100, 4) + "%"; fill.style.height = "100%";
+        fill.appendChild(unitIcon(u.icon, size));
+        part.appendChild(ghost); part.appendChild(fill); row.appendChild(part);
+      } else if (cut) {
+        row.appendChild(wholeIcon(headCount));   // 省略しても最後の1個は見せる
+      }
+    };
+
+    // まず見当をつけた個数で並べ、3行を超えていたら「行数ぶん」の割合で減らして詰め直す。
+    // 幅を先に測るのではなく結果を見て直すので、文字の大きさや表示倍率が変わってもずれない。
+    let limit = Math.min(total, iconLimit(host, size));
+    build(limit);
+    for (let guard = 0; guard < 8; guard++) {
+      const rows = iconRows(row);
+      if (rows <= ICON_ROWS || limit <= 4) break;
+      limit = Math.max(4, Math.floor(limit * ICON_ROWS / rows));
+      build(limit);
+    }
   }
   /** 数字を 0 から目標値まで数え上げる(アイコンが増えるのと歩調を合わせるため)。 */
   function countUp(node, value) {
@@ -872,7 +951,9 @@
     // 大きいほうから 年 → 月 → 週 の順に並べる。主役(特大表示)は今年ぶん。
     $("#lift-hero-label").textContent = lf.yearLabel || "今年";
     countUp($("#lift-hero"), lf.year);
-    renderEquiv($("#lift-hero-equiv"), lf.year, 28);
+    // アイコンは幅を測ってから並べる(何行に収まるかを実際の幅から決めるため)ので、
+    // 描くのは画面に置いたあと。ここでは元になる値だけ持たせておく。
+    markEquiv($("#lift-hero-equiv"), lf.year, 28);
     // 右上: 昨年の同じ時点まで
     const prev = $("#lift-hero-prev"); prev.textContent = "";
     const py = prevParts("year", lf);
@@ -887,7 +968,8 @@
       appendFull(prev, py);
     }
     // 今月・今週ぶん(下段)。換算アイコンの単位は、期間ごとにその量に合うものを選び直す
-    // (以前は今週を今月にそろえていたが、桁が違うと「0.3台ぶん」のような見え方になるため)。
+    // (以前は今週を今月にそろえていたが、桁が違うと「0.3台ぶん」のような見え方になるため。
+    //  そろえて見たいときは、下の「たとえる単位」から選べる)。
     const rows = $("#hero-rows"); rows.textContent = "";
     [
       { label: lf.monthLabel || "今月", kg: lf.month, scope: "month" },
@@ -901,7 +983,7 @@
       countUp(num, r.kg);
       const right = document.createElement("div"); right.className = "w-right";
       const eq = document.createElement("div"); eq.className = "equiv";
-      renderEquiv(eq, r.kg, 20);
+      markEquiv(eq, r.kg, 20);
       right.appendChild(eq);
       const pv = document.createElement("div"); pv.className = "w-prev";
       const p = prevParts(r.scope, lf);
@@ -915,6 +997,38 @@
       }
       row.appendChild(lab); row.appendChild(val); row.appendChild(right); row.appendChild(pv);
       rows.appendChild(row);
+    });
+    paintEquivs();
+  }
+
+  // ---- 換算アイコンの単位切り替え ----
+  // 既定は期間ごとの自動選択。ドロップダウンで単位を選ぶと、年・月・週をすべてその単位で
+  // 表示して比べられる(「乗用車では6台だけど、自動販売機なら何台ぶん?」を見るため)。
+  // 選択は覚えない(見比べるための一時的な操作なので、読み込み直すと自動に戻る)。
+  function markEquiv(host, kg, size) {
+    host.dataset.kg = kg == null ? 0 : kg;
+    host.dataset.size = size;
+  }
+  function paintEquivs() {
+    document.querySelectorAll(".hero .equiv[data-kg]").forEach((host) => {
+      renderEquiv(host, +host.dataset.kg, +host.dataset.size);
+    });
+  }
+  function setupEquivUnit() {
+    const sel = $("#equiv-unit");
+    const auto = document.createElement("option");
+    auto.value = ""; auto.textContent = "自動(期間ごと)";
+    sel.appendChild(auto);
+    EQUIV_UNITS.forEach((u, i) => {
+      const o = document.createElement("option");
+      o.value = String(i); o.textContent = u.name;
+      if (u.note) o.title = u.note;
+      sel.appendChild(o);
+    });
+    sel.addEventListener("change", (e) => {
+      const v = e.target.value;
+      forcedUnit = v === "" ? null : EQUIV_UNITS[+v];
+      paintEquivs();
     });
   }
 
@@ -1254,6 +1368,7 @@
       }
     }
   }
+  safeRender("単位の切り替え", null, setupEquivUnit);
   safeRender("ヒーロー", ".hero-main", renderHero);
   safeRender("AI週間プラン", "#ai-plan-card", renderAiPlan);
   safeRender("自己ベスト", null, renderPR);
