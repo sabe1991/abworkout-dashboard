@@ -16,6 +16,7 @@
   (GitHub の設定が無いときは、自動的に ../sample-data/latest.json を表示する)
 """
 from __future__ import annotations
+import importlib
 import json
 import os
 
@@ -23,7 +24,21 @@ import requests
 import streamlit as st
 import streamlit.components.v1 as components
 
+import aggregate
 import build_view
+
+# 同じフォルダの自作モジュールを、実行のたびに読み直す。
+# 理由: view.html は build_html が毎回ファイルを開き直すので常に最新が使われるのに対し、
+# aggregate.py / build_view.py は Python が一度読んだ内容をメモリに持ち続ける(sys.modules に
+# 残る)。Streamlit Cloud が git push を検知してスクリプトだけ再実行した場合、
+# 「新しい view.html + 古い aggregate.py」という食い違った組み合わせで動いてしまい、
+# 新しい集計項目が丸ごと欠けて画面が「—」や空になる。実際に 2026-07-25 にこれが起きた。
+# モジュールは定数と関数の定義しか持たないので、読み直しても副作用は無い。
+for _mod in (aggregate, build_view):
+    try:
+        importlib.reload(_mod)
+    except Exception:  # 読み直しに失敗しても、既に読めているモジュールで動かす
+        pass
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SAMPLE = os.path.join(HERE, "..", "sample-data", "latest.json")

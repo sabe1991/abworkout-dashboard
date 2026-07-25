@@ -192,8 +192,11 @@
   .kpi .value small { font-size: 14px; font-weight: 500; color: var(--ink-2); }
   .kpi .delta { font-size: 11.5px; color: var(--ink-2); margin-top: 1px; }
   .kpi .delta .good { color: var(--good); font-weight: 600; }
-  .meter { margin-top: 9px; height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
-  .meter > span { display: block; height: 100%; border-radius: 3px; background: var(--good); }
+  /* 週の目標回数ぶんの丸を並べ、実施ぶんを塗る。横いっぱいの帯にすると
+     横スクロールバーに見えてしまうため、左詰めの小さな丸で表す。 */
+  .pips { margin-top: 9px; display: flex; gap: 5px; }
+  .pips > span { width: 10px; height: 10px; border-radius: 50%; background: var(--track); }
+  .pips > span.on { background: var(--good); }
 
   /* ---------- sticky in-page nav ---------- */
   .nav { position: sticky; top: 0; z-index: 20; background: var(--page); border-bottom: 1px solid var(--grid); margin: 0 -20px 22px; padding: 0 20px; }
@@ -994,9 +997,19 @@
       const small = document.createElement("small"); small.textContent = ` / ${goalCnt} 回`; val.appendChild(small);
       const delta = document.createElement("div"); delta.className = "delta";
       delta.textContent = remain > 0 ? `週の目標まで あと${remain}回` : "今週の目標を達成";
-      const meter = document.createElement("div"); meter.className = "meter";
-      const bar = document.createElement("span"); bar.style.width = Math.min(100, Math.round((cnt / goalCnt) * 100)) + "%"; meter.appendChild(bar);
-      k.appendChild(lbl); k.appendChild(val); k.appendChild(delta); k.appendChild(meter);
+      k.appendChild(lbl); k.appendChild(val); k.appendChild(delta);
+      // 目標回数ぶんの丸を並べ、実施ぶんを塗る。目標を上回った回数も丸を足して見せる。
+      // 目標が極端に多い場合(週12回超)は丸が並びすぎるので出さない(文言だけで足りる)。
+      const slots = Math.max(goalCnt, cnt);
+      if (slots <= 12) {
+        const pips = document.createElement("div"); pips.className = "pips";
+        pips.setAttribute("role", "img");
+        pips.setAttribute("aria-label", `週${goalCnt}回のうち${cnt}回実施`);
+        for (let i = 0; i < slots; i++) {
+          const s = document.createElement("span"); if (i < cnt) s.className = "on"; pips.appendChild(s);
+        }
+        k.appendChild(pips);
+      }
       host.appendChild(k);
     }
     // 2) 最新体重(+ 前回差・目標まで・スパークライン)
