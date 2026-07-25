@@ -121,6 +121,8 @@
   /* 右端の比較用(ひとつ前の期間の総重量)。今の値を主役に保つため、色も大きさも控えめにする */
   .hero-prev { text-align: right; margin-left: auto; }
   .hero-prev .p-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); }
+  /* どの時点で切ったか(「(25日まで)」)。ラベルに添えて常に見えるようにする */
+  .p-note { font-weight: 500; letter-spacing: 0; margin-left: 3px; }
   .hero-prev .p-val { font-size: 20px; font-weight: 700; line-height: 1.15; color: var(--ink-2); margin-top: 2px; }
   .hero-prev .p-val small { font-size: 12px; font-weight: 500; margin-left: 2px; }
   .hero-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
@@ -192,7 +194,20 @@
   .chart-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
   .chart-title { font-size: 14px; font-weight: 600; }
   .chart-sub { font-size: 11.5px; color: var(--muted); }
-  .head-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+  /* 見出しの右側。折りたたみボタンをその右隣に置くため、余白の寄せ方は margin で決める */
+  .head-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-left: auto; }
+
+  /* カードの折りたたみ。見出しの中には種目セレクタなどの操作部品があるので、
+     見出し全体ではなく専用のボタンで開閉する(誤って閉じてしまわないように) */
+  .card-toggle { display: inline-flex; align-items: center; justify-content: center; margin-left: 8px;
+    width: 26px; height: 26px; padding: 0; border: 1px solid var(--border); border-radius: 7px;
+    background: var(--surface); color: var(--ink-2); cursor: pointer; flex: none; align-self: center; }
+  .card-toggle:hover { color: var(--ink); }
+  .card-toggle .svgico { transition: transform 160ms ease; }
+  .card-toggle[aria-expanded="false"] .svgico { transform: rotate(-90deg); }
+  @media (prefers-reduced-motion: reduce) { .card-toggle .svgico { transition: none; } }
+  .card.collapsed .card-body { display: none; }
+  .card.collapsed .chart-head { margin-bottom: 0; }
   .legend { display: flex; gap: 13px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); }
   .legend .key { display: inline-flex; align-items: center; gap: 6px; }
   .lk-line { width: 14px; height: 0; border-top: 2.5px solid; border-radius: 2px; display: inline-block; }
@@ -243,7 +258,9 @@
 
   /* ---------- calendar ---------- */
   .cal-scroll { overflow-x: auto; padding-bottom: 4px; }
-  .cal-grid { display: grid; gap: 3px; width: max-content; }
+  /* 中身が容器より狭いときは中央に置く(右側だけ余白が空くのを避ける)。
+     広いときは auto マージンが 0 になるだけなので、横スクロールの挙動は変わらない。 */
+  .cal-grid { display: grid; gap: 3px; width: max-content; margin: 0 auto; }
   .cal-cell { width: 15px; height: 15px; border-radius: 3px; background: var(--cal0); border: none; padding: 0; cursor: default; }
   .cal-cell.lv1 { background: var(--cal1); } .cal-cell.lv2 { background: var(--cal2); }
   .cal-cell.lv3 { background: var(--cal3); } .cal-cell.lv4 { background: var(--cal4); } .cal-cell.lv5 { background: var(--cal5); }
@@ -297,11 +314,11 @@
     <div class="hero-main">
       <div class="hero-top">
         <div class="hero-now">
-          <div class="hero-eyebrow"><span id="lift-month-label">今月</span> 持ち上げた総重量</div>
-          <div class="hero-big"><span id="lift-month">—</span><span class="unit">kg</span></div>
-          <div class="equiv" id="lift-month-equiv"></div>
+          <div class="hero-eyebrow"><span id="lift-hero-label">今年</span> 持ち上げた総重量</div>
+          <div class="hero-big"><span id="lift-hero">—</span><span class="unit">kg</span></div>
+          <div class="equiv" id="lift-hero-equiv"></div>
         </div>
-        <div class="hero-prev" id="lift-month-prev"></div>
+        <div class="hero-prev" id="lift-hero-prev"></div>
       </div>
       <div class="hero-rows" id="hero-rows"></div>
     </div>
@@ -704,6 +721,7 @@
     trendUp: '<path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/>',
     scale:   '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
     flame:   '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+    chevron: '<path d="m6 9 6 6 6-6"/>',
   };
   function iconEl(name, size) {
     const s = size || 16;
@@ -812,53 +830,68 @@
   }
 
   // ---- HERO(持ち上げた総重量) ----
-  // 右端に出す「ひとつ前の期間」の説明文。
+  // 右端に出す「ひとつ前の期間」の値まわり。
   // 表示している数字は今の期間と同じ時点までで切ったぶん(進行中の今月を、終わった先月
-  // まるごとと比べると必ず負けて見えるため)。まるごとの合計も知りたいので補足に添える。
-  function prevTitle(scope, lf) {
-    const g = { month: ["monthPrev", "monthPrevTo", "monthPrevFull", "monthPrevLabel"],
-                week: ["weekPrev", "weekPrevTo", "weekPrevFull", null],
-                year: ["yearPrev", "yearPrevTo", "yearPrevFull", "yearPrevLabel"] }[scope];
-    const [kg, to, full, label] = [lf[g[0]], lf[g[1]], lf[g[2]], g[3] ? lf[g[3]] : "先週"];
-    if (!to) return "";
-    const d = parseYMD(to);
+  // まるごとと比べると必ず負けて見えるため)。どこで切ったかはラベルに常に出し、
+  // まるごとの合計はマウスを乗せたときの補足に回す。
+  const PREV_KEYS = {
+    month: ["monthPrev", "monthPrevTo", "monthPrevFull", "monthPrevLabel", "今月"],
+    week: ["weekPrev", "weekPrevTo", "weekPrevFull", null, "今週"],
+    year: ["yearPrev", "yearPrevTo", "yearPrevFull", "yearPrevLabel", "今年"],
+  };
+  function prevParts(scope, lf) {
+    const g = PREV_KEYS[scope];
+    const to = lf[g[1]];
+    if (!to) return null;
+    const d = parseYMD(to), full = lf[g[2]], kg = lf[g[0]];
+    const label = g[3] ? lf[g[3]] : "先週";
+    // 常に見える「どこまでで切ったか」。週は日付より曜日のほうが直感的なので曜日で出す。
+    const note = scope === "week" ? `(${WD[d.getDay()]}曜まで)`
+      : scope === "month" ? `(${d.getDate()}日まで)`
+      : `(${d.getMonth() + 1}/${d.getDate()}まで)`;
     const head = scope === "week" ? `先週の月曜〜${WD[d.getDay()]}曜`
       : scope === "month" ? `${label}の1〜${d.getDate()}日`
       : `${label}の1/1〜${d.getMonth() + 1}/${d.getDate()}`;
-    const now = { month: "今月", week: "今週", year: "今年" }[scope];
-    return `${head}の合計(${now}と同じ時点まで)${kg ? "" : " ※記録なし"}`
-      + (full ? `。${label}まるごとでは ${Math.round(full).toLocaleString()}kg` : "");
+    // まるごとと同じ範囲になる月末などでは、補足の「まるごとでは…」は出さない(同じ数字になるため)
+    const title = `${head}の合計(${g[4]}と同じ時点まで)${kg ? "" : " ※記録なし"}`
+      + (full && full !== kg ? `。${label}まるごとでは ${Math.round(full).toLocaleString()}kg` : "");
+    return { label, note, title, kg };
+  }
+  // ラベル(「6月」)と、そこで切った時点(「(25日まで)」)を1つの要素にまとめる
+  function prevLabelEl(p, tag) {
+    const el = document.createElement(tag); el.className = "p-label"; el.textContent = p.label;
+    const note = document.createElement("span"); note.className = "p-note"; note.textContent = p.note;
+    el.appendChild(note); return el;
   }
   // 比較用の数値。0 のときは「その期間に記録が無い」ので、ほかの箇所と同じく「—」にする
   const prevKg = (v) => (v ? Math.round(v).toLocaleString() + "kg" : "—");
 
   function renderHero() {
     const lf = DATA.lifted || {};
-    const unit = pickEquivUnit(lf.month || 0);
-    $("#lift-month-label").textContent = lf.monthLabel || "今月";
-    countUp($("#lift-month"), lf.month);
-    renderEquiv($("#lift-month-equiv"), lf.month, 28, 12, unit);
-    // 右上: 先月の同じ時点まで
-    const prev = $("#lift-month-prev"); prev.textContent = "";
-    if (lf.monthPrevTo) {
-      prev.title = prevTitle("month", lf);
-      const pl = document.createElement("div"); pl.className = "p-label"; pl.textContent = lf.monthPrevLabel || "先月";
+    // 大きいほうから 年 → 月 → 週 の順に並べる。主役(特大表示)は今年ぶん。
+    const monthUnit = pickEquivUnit(lf.month || 0);
+    $("#lift-hero-label").textContent = lf.yearLabel || "今年";
+    countUp($("#lift-hero"), lf.year);
+    renderEquiv($("#lift-hero-equiv"), lf.year, 28, 12, pickEquivUnit(lf.year || 0));
+    // 右上: 昨年の同じ時点まで
+    const prev = $("#lift-hero-prev"); prev.textContent = "";
+    const py = prevParts("year", lf);
+    if (py) {
+      prev.title = py.title;
       const pv = document.createElement("div"); pv.className = "p-val";
-      if (lf.monthPrev) {
-        pv.textContent = Math.round(lf.monthPrev).toLocaleString();
+      if (py.kg) {
+        pv.textContent = Math.round(py.kg).toLocaleString();
         const u = document.createElement("small"); u.textContent = "kg"; pv.appendChild(u);
       } else { pv.textContent = "—"; }
-      prev.appendChild(pl); prev.appendChild(pv);
+      prev.appendChild(prevLabelEl(py, "div")); prev.appendChild(pv);
     }
-    // 今週・今年ぶん(下段)
+    // 今月・今週ぶん(下段)
     // 今週は今月と同じ単位でそろえる(スケールが近く、大小を比べたいため)。
-    // 今年は桁が1つ2つ上がるので、自分に合う単位を選び直す(アイコンが並びすぎないように)。
+    // 今年は桁が1つ2つ上がるので、上の特大表示だけ単位を選び直している。
     const rows = $("#hero-rows"); rows.textContent = "";
     [
-      { label: "今週", kg: lf.week, unit: stepDownWhileTiny(unit, lf.week || 0),
-        scope: "week", prevLabel: "先週", prev: lf.weekPrev },
-      { label: lf.yearLabel || "今年", kg: lf.year, unit: null,
-        scope: "year", prevLabel: lf.yearPrevLabel || "昨年", prev: lf.yearPrev },
+      { label: lf.monthLabel || "今月", kg: lf.month, unit: monthUnit, scope: "month" },
+      { label: "今週", kg: lf.week, unit: stepDownWhileTiny(monthUnit, lf.week || 0), scope: "week" },
     ].forEach((r) => {
       const row = document.createElement("div"); row.className = "hero-row";
       const lab = document.createElement("span"); lab.className = "w-label"; lab.textContent = r.label;
@@ -871,9 +904,12 @@
       renderEquiv(eq, r.kg, 20, 6, r.unit);
       right.appendChild(eq);
       const pv = document.createElement("div"); pv.className = "w-prev";
-      pv.title = prevTitle(r.scope, lf);
-      const pl = document.createElement("span"); pl.className = "p-label"; pl.textContent = r.prevLabel;
-      pv.appendChild(pl); pv.appendChild(document.createTextNode(prevKg(r.prev)));
+      const p = prevParts(r.scope, lf);
+      if (p) {
+        pv.title = p.title;
+        pv.appendChild(prevLabelEl(p, "span"));
+        pv.appendChild(document.createTextNode(prevKg(p.kg)));
+      }
       row.appendChild(lab); row.appendChild(val); row.appendChild(right); row.appendChild(pv);
       rows.appendChild(row);
     });
@@ -924,7 +960,7 @@
 
   // ---- 自己ベスト(PR)一覧 ----
   const PR_MONTHS = 3;  // 対象期間(この値を変えれば絞り込みの長さを変えられる)
-  const PR_MAX = 12;    // 表示する最大件数
+  const PR_MAX = 10;    // 表示する最大件数
   function renderPR() {
     const tb = $("#pr-tbody"); tb.textContent = "";
     // 基準日は anchor(通常は今日。データ側で「今日と最新記録日の遅いほう」にしてある)。
@@ -1220,6 +1256,52 @@
   safeRender("自己ベスト", null, renderPR);
   safeRender("直近のワークアウト", null, renderRecent);
   safeRender("グラフ", null, renderAll);
+
+  // ---- カードの折りたたみ ----
+  // すべてのカードの見出し右にボタンを付け、中身を開閉できるようにする。
+  // 閉じたカードは記憶して、次に開いたときも閉じたままにする(見たいものだけ並べられるように)。
+  // 目印(キー)は見出しの文字列。文言を変えると記憶がリセットされるが、実害は無いので割り切る。
+  const COLLAPSE_KEY = "abw-collapsed";
+  function loadCollapsed() {
+    try { return new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY) || "[]")); } catch (_) { return new Set(); }
+  }
+  function saveCollapsed(set) {
+    try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...set])); } catch (_) {}
+  }
+  function setupCollapse() {
+    const closed = loadCollapsed();
+    document.querySelectorAll(".card").forEach((card) => {
+      const head = card.querySelector(".chart-head");
+      if (!head || card.querySelector(":scope > .card-body")) return;   // 見出しが無い/設定済みは対象外
+      const titleEl = head.querySelector(".chart-title");
+      const title = (titleEl ? titleEl.textContent : "").trim();
+      if (!title) return;
+      // 見出しより後ろの中身をまとめて包む。閉じるときはこの箱ごと隠す。
+      const body = document.createElement("div"); body.className = "card-body";
+      while (head.nextSibling) body.appendChild(head.nextSibling);
+      card.appendChild(body);
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "card-toggle";
+      btn.appendChild(iconEl("chevron", 16));
+      const apply = (open) => {
+        card.classList.toggle("collapsed", !open);
+        btn.setAttribute("aria-expanded", String(open));
+        btn.setAttribute("aria-label", title + (open ? "を閉じる" : "を開く"));
+      };
+      apply(!closed.has(title));
+      btn.addEventListener("click", () => {
+        const open = btn.getAttribute("aria-expanded") !== "true";
+        apply(open);
+        const set = loadCollapsed();
+        if (open) set.delete(title); else set.add(title);
+        saveCollapsed(set);
+        // 閉じている間は幅が測れずグラフが既定サイズで描かれるので、開いたら描き直す
+        if (open && card.querySelector(".chart-box, #calendar")) safeRender("グラフ", null, renderAll);
+      });
+      head.appendChild(btn);
+    });
+  }
+  safeRender("カードの折りたたみ", null, setupCollapse);
 
   // iframe に埋め込まれたとき、中身の実際の高さに iframe を合わせる(内側スクロールや余白を防ぐ)。
   // Streamlit の components.html は srcdoc の iframe(親と同一オリジン)なので frameElement を直接調整できる。
