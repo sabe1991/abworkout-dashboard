@@ -116,6 +116,13 @@
     padding: 22px 24px; margin-bottom: 14px;
   }
   .hero-main { min-width: 0; }
+  .hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px 24px; flex-wrap: wrap; }
+  .hero-now { min-width: 0; }
+  /* 右端の比較用(ひとつ前の期間の総重量)。今の値を主役に保つため、色も大きさも控えめにする */
+  .hero-prev { text-align: right; margin-left: auto; }
+  .hero-prev .p-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); }
+  .hero-prev .p-val { font-size: 20px; font-weight: 700; line-height: 1.15; color: var(--ink-2); margin-top: 2px; }
+  .hero-prev .p-val small { font-size: 12px; font-weight: 500; margin-left: 2px; }
   .hero-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
   .hero-big { font-size: 52px; font-weight: 800; line-height: 1.02; letter-spacing: -0.01em; margin: 6px 0 2px; }
   .hero-big .unit { font-size: 22px; font-weight: 600; color: var(--ink-2); margin-left: 4px; }
@@ -141,7 +148,9 @@
 
   /* 今週・今年ぶん(ヒーロー下段) */
   .hero-rows { margin-top: 14px; padding-top: 4px; border-top: 1px solid var(--border); }
-  .hero-row { display: grid; grid-template-columns: 56px minmax(96px, auto) 1fr; align-items: center; gap: 4px 14px; padding: 9px 0; }
+  .hero-row { display: grid; grid-template-columns: 56px minmax(96px, auto) 1fr auto; align-items: center; gap: 4px 14px; padding: 9px 0; }
+  .hero-row .w-prev { font-size: 13px; color: var(--ink-2); white-space: nowrap; text-align: right; }
+  .hero-row .w-prev .p-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); margin-right: 6px; }
   .hero-row + .hero-row { border-top: 1px solid var(--grid); }
   .hero-row .w-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); }
   .hero-row .w-val { font-size: 23px; font-weight: 700; line-height: 1.1; justify-self: end; }
@@ -155,6 +164,7 @@
     .hero-row { grid-template-columns: 56px 1fr; }
     .hero-row .w-val { justify-self: start; }
     .hero-row .w-right { grid-column: 2; }
+    .hero-row .w-prev { grid-column: 2; text-align: left; }
     .hero-row .equiv { flex-wrap: wrap; }   /* 幅が足りないときは折り返す(横スクロールを出さない) */
   }
 
@@ -285,9 +295,14 @@
   <!-- HERO: 持ち上げた総重量(今月・今週) -->
   <div class="hero">
     <div class="hero-main">
-      <div class="hero-eyebrow"><span id="lift-month-label">今月</span> 持ち上げた総重量</div>
-      <div class="hero-big"><span id="lift-month">—</span><span class="unit">kg</span></div>
-      <div class="equiv" id="lift-month-equiv"></div>
+      <div class="hero-top">
+        <div class="hero-now">
+          <div class="hero-eyebrow"><span id="lift-month-label">今月</span> 持ち上げた総重量</div>
+          <div class="hero-big"><span id="lift-month">—</span><span class="unit">kg</span></div>
+          <div class="equiv" id="lift-month-equiv"></div>
+        </div>
+        <div class="hero-prev" id="lift-month-prev"></div>
+      </div>
       <div class="hero-rows" id="hero-rows"></div>
     </div>
   </div>
@@ -335,9 +350,9 @@
         </div>
         <div class="head-tools">
           <div class="range-seg" id="strength-range" role="group" aria-label="表示期間">
-            <button type="button" data-weeks="13" aria-pressed="false">3ヶ月</button>
+            <button type="button" data-weeks="13" aria-pressed="true">3ヶ月</button>
             <button type="button" data-weeks="26" aria-pressed="false">6ヶ月</button>
-            <button type="button" data-weeks="52" aria-pressed="true">12ヶ月</button>
+            <button type="button" data-weeks="52" aria-pressed="false">12ヶ月</button>
           </div>
           <select class="exsel" id="exsel" aria-label="表示する記録を選択">
             <option value="big3">BIG3 推定1RM合計</option>
@@ -384,9 +399,9 @@
     <div class="sec-head">
       <h2>からだ</h2><span class="sec-note">体重・体脂肪と目標</span>
       <div class="range-seg" id="body-range" role="group" aria-label="表示期間">
-        <button type="button" data-weeks="13" aria-pressed="false">3ヶ月</button>
+        <button type="button" data-weeks="13" aria-pressed="true">3ヶ月</button>
         <button type="button" data-weeks="26" aria-pressed="false">6ヶ月</button>
-        <button type="button" data-weeks="52" aria-pressed="true">12ヶ月</button>
+        <button type="button" data-weeks="52" aria-pressed="false">12ヶ月</button>
       </div>
     </div>
     <div class="grid-2">
@@ -797,19 +812,53 @@
   }
 
   // ---- HERO(持ち上げた総重量) ----
+  // 右端に出す「ひとつ前の期間」の説明文。
+  // 表示している数字は今の期間と同じ時点までで切ったぶん(進行中の今月を、終わった先月
+  // まるごとと比べると必ず負けて見えるため)。まるごとの合計も知りたいので補足に添える。
+  function prevTitle(scope, lf) {
+    const g = { month: ["monthPrev", "monthPrevTo", "monthPrevFull", "monthPrevLabel"],
+                week: ["weekPrev", "weekPrevTo", "weekPrevFull", null],
+                year: ["yearPrev", "yearPrevTo", "yearPrevFull", "yearPrevLabel"] }[scope];
+    const [kg, to, full, label] = [lf[g[0]], lf[g[1]], lf[g[2]], g[3] ? lf[g[3]] : "先週"];
+    if (!to) return "";
+    const d = parseYMD(to);
+    const head = scope === "week" ? `先週の月曜〜${WD[d.getDay()]}曜`
+      : scope === "month" ? `${label}の1〜${d.getDate()}日`
+      : `${label}の1/1〜${d.getMonth() + 1}/${d.getDate()}`;
+    const now = { month: "今月", week: "今週", year: "今年" }[scope];
+    return `${head}の合計(${now}と同じ時点まで)${kg ? "" : " ※記録なし"}`
+      + (full ? `。${label}まるごとでは ${Math.round(full).toLocaleString()}kg` : "");
+  }
+  // 比較用の数値。0 のときは「その期間に記録が無い」ので、ほかの箇所と同じく「—」にする
+  const prevKg = (v) => (v ? Math.round(v).toLocaleString() + "kg" : "—");
+
   function renderHero() {
     const lf = DATA.lifted || {};
     const unit = pickEquivUnit(lf.month || 0);
     $("#lift-month-label").textContent = lf.monthLabel || "今月";
     countUp($("#lift-month"), lf.month);
     renderEquiv($("#lift-month-equiv"), lf.month, 28, 12, unit);
+    // 右上: 先月の同じ時点まで
+    const prev = $("#lift-month-prev"); prev.textContent = "";
+    if (lf.monthPrevTo) {
+      prev.title = prevTitle("month", lf);
+      const pl = document.createElement("div"); pl.className = "p-label"; pl.textContent = lf.monthPrevLabel || "先月";
+      const pv = document.createElement("div"); pv.className = "p-val";
+      if (lf.monthPrev) {
+        pv.textContent = Math.round(lf.monthPrev).toLocaleString();
+        const u = document.createElement("small"); u.textContent = "kg"; pv.appendChild(u);
+      } else { pv.textContent = "—"; }
+      prev.appendChild(pl); prev.appendChild(pv);
+    }
     // 今週・今年ぶん(下段)
     // 今週は今月と同じ単位でそろえる(スケールが近く、大小を比べたいため)。
     // 今年は桁が1つ2つ上がるので、自分に合う単位を選び直す(アイコンが並びすぎないように)。
     const rows = $("#hero-rows"); rows.textContent = "";
     [
-      { label: "今週", kg: lf.week, unit: stepDownWhileTiny(unit, lf.week || 0) },
-      { label: lf.yearLabel || "今年", kg: lf.year, unit: null },
+      { label: "今週", kg: lf.week, unit: stepDownWhileTiny(unit, lf.week || 0),
+        scope: "week", prevLabel: "先週", prev: lf.weekPrev },
+      { label: lf.yearLabel || "今年", kg: lf.year, unit: null,
+        scope: "year", prevLabel: lf.yearPrevLabel || "昨年", prev: lf.yearPrev },
     ].forEach((r) => {
       const row = document.createElement("div"); row.className = "hero-row";
       const lab = document.createElement("span"); lab.className = "w-label"; lab.textContent = r.label;
@@ -821,7 +870,11 @@
       const eq = document.createElement("div"); eq.className = "equiv";
       renderEquiv(eq, r.kg, 20, 6, r.unit);
       right.appendChild(eq);
-      row.appendChild(lab); row.appendChild(val); row.appendChild(right);
+      const pv = document.createElement("div"); pv.className = "w-prev";
+      pv.title = prevTitle(r.scope, lf);
+      const pl = document.createElement("span"); pl.className = "p-label"; pl.textContent = r.prevLabel;
+      pv.appendChild(pl); pv.appendChild(document.createTextNode(prevKg(r.prev)));
+      row.appendChild(lab); row.appendChild(val); row.appendChild(right); row.appendChild(pv);
       rows.appendChild(row);
     });
   }
@@ -960,7 +1013,10 @@
     big3: "ベンチプレス・スクワット・デッドリフトの推定1RM(1回だけ挙げられる最大重量の推定値)を足した値。3種目すべてを実施した週だけ点を打つ",
     each: "週ごとのトップセット(いちばん重いセット)と、そこから換算した推定1RM",
   };
-  const state = { exercise: "bench", bodyWeeks: N_WEEKS, strengthWeeks: N_WEEKS };
+  // 期間切り替えがあるグラフ(重量の推移・からだ)の初期表示。直近の変化を見たい場面が多いので
+  // 12ヶ月ではなく3ヶ月から始める。markup 側の aria-pressed="true" と必ずそろえること。
+  const DEFAULT_WEEKS = 13;
+  const state = { exercise: "bench", bodyWeeks: DEFAULT_WEEKS, strengthWeeks: DEFAULT_WEEKS };
   function renderAll() {
     const k = state.strengthWeeks, ds = weeks.slice(-k);
     const ex = exSeries(state.exercise);

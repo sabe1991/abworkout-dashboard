@@ -237,12 +237,30 @@ def build_data(data: dict, today: date | None = None) -> dict:
     # --- 直近ワークアウト(最新5件) ---
     recent = _recent_workouts(bk, limit=5)
 
-    # --- ヒーロー: 総挙上量(今週・今月・今年) ---
+    # --- ヒーロー: 総挙上量(今週・今月・今年 と、その前の期間) ---
     # calendar(日別の総挙上量)から期間で切り出すだけ。
-    # 前期間との増減や実施日数は画面に出さないことにしたので算出もしない(2026-07-25)。
     def _lifted(d_from: date, d_to: date) -> float:
         """d_from 〜 d_to(両端を含む)の総挙上量 kg。"""
         return round(sum(v for k, v in calendar.items() if d_from <= _pdate(k) <= d_to), 1)
+
+    def _clamp_day(y: int, m: int, d: int) -> date:
+        """存在しない日付(2月30日など)は、その月の末日に丸めて返す。"""
+        while True:
+            try:
+                return date(y, m, d)
+            except ValueError:
+                d -= 1
+
+    # 比較相手は「先月・先週・昨年の**同じ時点まで**」にそろえる。
+    # 進行中の今月を、終わったばかりの先月まるごとと比べると必ず負けて見えるため。
+    # ただし「先月まるごとではいくつだったか」も知りたいので、Full 付きの値も一緒に返し、
+    # 画面ではマウスを乗せたときの補足として出す(どちらの見方も取れるようにするため)。
+    prev_m_year, prev_m_month = (anchor.year, anchor.month - 1) if anchor.month > 1 else (anchor.year - 1, 12)
+    month_prev_from = date(prev_m_year, prev_m_month, 1)
+    month_prev_to = _clamp_day(prev_m_year, prev_m_month, anchor.day)
+    month_prev_end = anchor.replace(day=1) - timedelta(days=1)   # 先月の末日
+    week_prev_from = _monday(anchor) - timedelta(days=7)
+    week_prev_to = anchor - timedelta(days=7)
 
     lifted = {
         "week": _lifted(_monday(anchor), anchor),
@@ -251,6 +269,17 @@ def build_data(data: dict, today: date | None = None) -> dict:
         "year": _lifted(date(anchor.year, 1, 1), anchor),
         "yearLabel": f"{anchor.year}年",
         "asOf": anchor.isoformat(),
+        "weekPrev": _lifted(week_prev_from, week_prev_to),
+        "weekPrevTo": week_prev_to.isoformat(),
+        "weekPrevFull": _lifted(week_prev_from, week_prev_from + timedelta(days=6)),
+        "monthPrev": _lifted(month_prev_from, month_prev_to),
+        "monthPrevLabel": f"{prev_m_month}月",
+        "monthPrevTo": month_prev_to.isoformat(),
+        "monthPrevFull": _lifted(month_prev_from, month_prev_end),
+        "yearPrev": _lifted(date(anchor.year - 1, 1, 1), _clamp_day(anchor.year - 1, anchor.month, anchor.day)),
+        "yearPrevLabel": f"{anchor.year - 1}年",
+        "yearPrevTo": _clamp_day(anchor.year - 1, anchor.month, anchor.day).isoformat(),
+        "yearPrevFull": _lifted(date(anchor.year - 1, 1, 1), date(anchor.year - 1, 12, 31)),
     }
 
     ai = _ai_plan(bk)
