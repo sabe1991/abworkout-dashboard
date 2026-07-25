@@ -1442,13 +1442,34 @@
   // iframe に埋め込まれたとき、中身の実際の高さに iframe を合わせる(内側スクロールや余白を防ぐ)。
   // Streamlit の components.html は srcdoc の iframe(親と同一オリジン)なので frameElement を直接調整できる。
   // 念のため親フレームへ高さも通知する(app.py 側でも拾えるように)。埋め込みでない場合は何も起きない。
+  // 高さは html / body の大きさではなく「中身(body の子要素)の下端」から測る。
+  // html と body は iframe の表示領域いっぱいまで引き伸ばされるので、それを測ると
+  // 「今の iframe の高さ」がそのまま返ってきてしまい、iframe を小さくできない。
+  // その結果、カードを畳んで中身が短くなっても iframe は大きいままになり、
+  // 下側に何も無い領域(親ページの黒い背景)が残ってスクロールできてしまう。
+  function contentHeight() {
+    let bottom = 0;
+    for (const el of document.body.children) {
+      const r = el.getBoundingClientRect();
+      if (r.width || r.height) bottom = Math.max(bottom, r.bottom);  // script など大きさの無い要素は無視
+    }
+    return Math.ceil(bottom + window.scrollY);  // 位置は画面基準なので、スクロール量を足して文書基準に直す
+  }
   function syncHeight() {
-    const h = Math.ceil(document.documentElement.getBoundingClientRect().height);
+    const h = contentHeight();
+    if (!h) return;  // 測れなかったときは今の高さのままにしておく(0px に潰さない)
     try { if (window.frameElement) window.frameElement.style.height = h + "px"; } catch (_) {}
     try { parent.postMessage({ type: "abw-height", height: h }, "*"); } catch (_) {}
   }
   addEventListener("load", syncHeight);
   setTimeout(syncHeight, 300);
-  if (window.ResizeObserver) new ResizeObserver(syncHeight).observe(document.body);
+  if (window.ResizeObserver) {
+    // body は上記のとおり iframe の高さに引きずられて変化しないことがあるので、
+    // 中身の入れ物(.wrap)も一緒に見張る。
+    const ro = new ResizeObserver(syncHeight);
+    ro.observe(document.body);
+    const wrap = document.querySelector(".wrap");
+    if (wrap) ro.observe(wrap);
+  }
 })();
 </script>
