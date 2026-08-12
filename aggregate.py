@@ -296,7 +296,7 @@ def build_data(data: dict, today: date | None = None) -> dict:
         "monthlyRows": monthly_rows,
         "partOrder": PART_ORDER,
         "partLabel": {v[0]: v[1] for v in BODYPART_MAP.values()},
-        "calendar": dict(calendar),
+        "calendar": {k: round(v) for k, v in calendar.items()},
         "weightSeries": weight_series,
         "fatSeries": fat_series,
         "goal": goal,
