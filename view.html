@@ -1157,7 +1157,7 @@
         const sv = document.createElement("span"); sv.className = "exsets";
         const setStrs = e.sets.map((s) => {
           if (s.weight == null && s.reps == null) return "—";
-          const wpart = s.weight != null ? trimN(s.weight) : "自重";
+          const wpart = s.weight != null ? trimN(s.weight) + (s.unit === "LB" ? "lb" : "kg") : "自重";
           return s.reps != null ? `${wpart}×${s.reps}` : wpart;
         });
         sv.textContent = setStrs.join(" / ");
