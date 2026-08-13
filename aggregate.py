@@ -77,6 +77,18 @@ def set_volume_kg(s: dict, e: dict) -> float:
     return 0.0
 
 
+def _with_is_first(pr: dict, first_seen: dict) -> list[dict]:
+    """PR記録(ex_id -> best set)に、その種目を初めて記録した日と同じ日付かどうか(isFirst)を
+    付けて一覧に変換する。初めて記録した日がそのまま自己ベストとして並ぶ行(=まだ更新して
+    いない)と、本当に前回を上回った行を画面側で見分けられるようにするため。"""
+    out = []
+    for ex_id, p in pr.items():
+        p = dict(p)
+        p["isFirst"] = p["date"] == first_seen.get(ex_id)
+        out.append(p)
+    return out
+
+
 class Backup:
     """BackupData JSON をそのまま保持し、索引を張るだけの薄いラッパー。"""
 
@@ -133,10 +145,14 @@ def build_data(data: dict, today: date | None = None) -> dict:
     vol_week = [defaultdict(int) for _ in weeks]          # week_idx -> part -> 本数
     calendar: dict = defaultdict(float)                    # 日付iso -> 総挙上量
     pr: dict = {}                                          # ex_id -> best set dict
+    first_seen: dict = {}                                   # ex_id -> その種目を最初に記録した日(iso文字列)
 
     for s, w, e in bk.work_sets():
         d = _pdate(w["date"])
         wi = _week_index(weeks, d)
+        prev_first = first_seen.get(e["id"])
+        if prev_first is None or w["date"] < prev_first:
+            first_seen[e["id"]] = w["date"]
         wkg = s.get("weightKg")
         reps = s.get("reps")
         # カレンダー: 総挙上量。自重種目は追加重量ぶんのみ、時間/距離種目は寄与しない
@@ -300,7 +316,7 @@ def build_data(data: dict, today: date | None = None) -> dict:
         "weightSeries": weight_series,
         "fatSeries": fat_series,
         "goal": goal,
-        "pr": sorted(pr.values(), key=lambda x: (x["e1rm"] is not None, x["e1rm"] or 0),
+        "pr": sorted(_with_is_first(pr, first_seen), key=lambda x: (x["e1rm"] is not None, x["e1rm"] or 0),
                      reverse=True),
         "recent": recent,
         "anchor": anchor.isoformat(),

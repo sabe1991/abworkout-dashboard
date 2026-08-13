@@ -7,7 +7,9 @@
     --surface-2: #eeece5;
     --ink: #0b0b0b;
     --ink-2: #52514e;
-    --muted: #898781;
+    /* ライトモードだけダークより一段暗くする(#898781 のままだと背景 #f7f5f0 とのコントラスト比が
+       3.1〜3.3:1 で WCAG の目安 4.5:1 に届かない。#6a6862 は同じ背景で 4.8〜5.1:1)。 */
+    --muted: #6a6862;
     --grid: #dedbd2;
     --axis: #c3c2b7;
     --border: rgba(11, 11, 11, 0.10);
@@ -84,6 +86,15 @@
     line-height: 1.6;
   }
   .wrap { max-width: 1080px; margin: 0 auto; padding: 24px 20px 72px; }
+
+  /* ---------- レスポンシブ方針 ----------
+     狭い画面向けの基準値(ブレークポイント)は次の2つに統一する。新しい部品を追加するときも、
+     独自の値を使わずこのどちらかに合わせること。CSS変数は @media の条件式の中では使えない
+     ため、値は各 @media (max-width: …) にそのまま書く。
+       560px … ラベル+値を横並びにしている部品を縦積みに切り替える基準(ヒーロー・直近のワーク
+               アウト・自己ベスト表など)
+       760px … 2カラムのグリッド(.grid-2 など)を1カラムに落とす基準
+     新しい部品は、560px幅で内容が欠けたり数値が途中で折り返されたりしないかを必ず確認する。 */
 
   /* ---------- header ---------- */
   header.site { display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; margin-bottom: 22px; }
@@ -225,8 +236,10 @@
 
   /* カードの折りたたみ。見出しの中には種目セレクタなどの操作部品があるので、
      見出し全体ではなく専用のボタンで開閉する(誤って閉じてしまわないように) */
+  /* 40×40px(Apple/Androidが目安とする最低タップ領域に近い値)。アイコン自体は16pxのまま変えず、
+     周りの余白でタップ領域だけ広げる。 */
   .card-toggle { display: inline-flex; align-items: center; justify-content: center; margin-left: 8px;
-    width: 26px; height: 26px; padding: 0; border: 1px solid var(--border); border-radius: 7px;
+    width: 40px; height: 40px; padding: 0; border: 1px solid var(--border); border-radius: 9px;
     background: var(--surface); color: var(--ink-2); cursor: pointer; flex: none; align-self: center; }
   .card-toggle:hover { color: var(--ink); }
   .card-toggle .svgico { transition: transform 160ms ease; }
@@ -274,16 +287,38 @@
   .tip .tname { color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
   .tip .tval { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
 
-  .table-wrap { overflow-x: auto; display: none; }
+  .table-wrap { overflow-x: auto; display: none; position: relative; }
   .table-wrap.show { display: block; }
+  /* 右にまだ隠れている内容があるときだけ、右端に淡いフェードを出して
+     横スクロールできることを示す(JSが has-more-x を付け外しする)。 */
+  .table-wrap.has-more-x::after, .cal-scroll.has-more-x::after {
+    content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 26px;
+    background: linear-gradient(to right, transparent, var(--surface));
+    pointer-events: none;
+  }
   .chart-box.hide { display: none; }
   table.data { border-collapse: collapse; width: 100%; font-size: 12.5px; }
   table.data th { text-align: left; color: var(--ink-2); font-weight: 600; font-size: 11.5px; border-bottom: 1px solid var(--axis); padding: 6px 10px 5px; white-space: nowrap; }
   table.data td { border-bottom: 1px solid var(--grid); padding: 5px 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   table.data td.num, table.data th.num { text-align: right; }
+  /* 自己ベスト表: 狭い画面では表(横方向に列)をやめ、1件=1カードの縦並びにする。
+     4列(種目・記録・推定1RM・達成日)を横に並べると幅が足りず、右端の「達成日」列が
+     画面外に隠れてしまうため。種目名だけ見出しとして残し、残りはラベル付きで1行ずつ積む。 */
+  @media (max-width: 560px) {
+    table.pr-table thead { display: none; }
+    table.pr-table, table.pr-table tbody, table.pr-table tr { display: block; width: 100%; }
+    table.pr-table tr { border-bottom: 1px solid var(--grid); padding: 9px 0; }
+    table.pr-table tr:first-child { padding-top: 0; }
+    table.pr-table tr:last-child { border-bottom: none; }
+    table.pr-table td { display: flex; justify-content: space-between; gap: 12px;
+      border-bottom: none; padding: 2px 0; white-space: normal; }
+    table.pr-table td:first-child { font-weight: 700; color: var(--ink); padding-bottom: 4px; font-size: 13.5px; }
+    table.pr-table td.num { text-align: left; }
+    table.pr-table td:not(:first-child)::before { content: attr(data-label); color: var(--muted); font-weight: 600; }
+  }
 
   /* ---------- calendar ---------- */
-  .cal-scroll { overflow-x: auto; padding-bottom: 4px; }
+  .cal-scroll { overflow-x: auto; padding-bottom: 4px; position: relative; }
   /* 中身が容器より狭いときは中央に置く(右側だけ余白が空くのを避ける)。
      広いときは auto マージンが 0 になるだけなので、横スクロールの挙動は変わらない。 */
   .cal-grid { display: grid; gap: 3px; width: max-content; margin: 0 auto; }
@@ -313,9 +348,19 @@
   .log-date { font-weight: 700; font-size: 13.5px; }
   .log-kind { font-size: 11px; color: var(--ink-2); background: var(--page); border: 1px solid var(--border); border-radius: 9px; padding: 0 8px; }
   .log-meta { font-size: 11.5px; color: var(--muted); }
-  .log-ex { display: grid; grid-template-columns: minmax(120px, 240px) 1fr; gap: 2px 12px; margin-top: 6px; font-size: 12.5px; }
+  /* minmax(0, 1fr) にしないと、値の列が種目名の列(最大240px)に押されて
+     極端に狭くなったとき、数値の途中で強制的に折り返されることがある。 */
+  .log-ex { display: grid; grid-template-columns: minmax(120px, 200px) minmax(0, 1fr); gap: 4px 12px; margin-top: 6px; font-size: 12.5px; }
   .log-ex .exname { color: var(--ink-2); }
-  .log-ex .exsets { font-variant-numeric: tabular-nums; }
+  /* セットの値(「12kg×10」など)を1個ずつの chip に分け、chip 単位でしか折り返さないようにする。
+     文字列を1本のまま流し込むと、狭い列では数値の途中で改行されることがあるため。 */
+  .log-ex .exsets { font-variant-numeric: tabular-nums; display: flex; flex-wrap: wrap; gap: 2px 6px; min-width: 0; }
+  .log-ex .exsets .setchip { white-space: nowrap; }
+  @media (max-width: 560px) {
+    /* 種目名の下にセット内容を積む(横並びだと値の列が狭くなりすぎるため)。 */
+    .log-ex { grid-template-columns: 1fr; row-gap: 2px; }
+    .log-ex .exname { font-weight: 600; color: var(--ink); }
+  }
   .log-note { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
   .pr-est { color: var(--ink-2); }
 
@@ -386,8 +431,8 @@
     <div class="card" style="margin-top:14px">
       <div class="chart-head"><div><div class="chart-title">最近更新した自己ベスト</div><div class="chart-sub" id="pr-sub"></div></div></div>
       <div class="table-wrap show">
-        <table class="data">
-          <thead><tr><th>種目</th><th>記録</th><th class="num">推定1RM</th><th>達成日</th></tr></thead>
+        <table class="data pr-table">
+          <thead><tr><th>種目</th><th>記録</th><th class="num" title="Epley式(重量×(1+回数/30))による推定値。実測ではなく、特に回数の多いセットほど誤差が大きくなる目安です。">推定1RM</th><th>達成日</th></tr></thead>
           <tbody id="pr-tbody"></tbody>
         </table>
       </div>
@@ -442,6 +487,7 @@
       <div class="chart-head"><div><div class="chart-title">実施カレンダー(直近12ヶ月)</div><div class="chart-sub">色の濃さ = その日の総挙上量(重量 × 回数の合計) ・ 下段は週の実施回数と目標(3回)の達成状況 ・ 横スクロールで過去分を表示</div></div></div>
       <div class="cal-scroll"><div id="calendar"></div></div>
       <div class="cal-legend">少<i style="background:var(--cal0)"></i><i style="background:var(--cal1)"></i><i style="background:var(--cal2)"></i><i style="background:var(--cal3)"></i><i style="background:var(--cal4)"></i><i style="background:var(--cal5)"></i>多</div>
+      <div class="insight" id="insight-calendar" style="display:none;margin-top:8px"></div>
     </div>
   </section>
 
@@ -481,6 +527,11 @@
 <script>
 (() => {
   "use strict";
+  // ここから末尾の catch までを1つの try で包む。safeRender は各セクションの描画だけを
+  // 個別に保護する仕組みで、その外側(週やカレンダーの下ごしらえなど)で想定外のデータ形状に
+  // よる例外が起きると、safeRender で守られているはずの他のセクションも含めてスクリプト
+  // 全体が止まり、画面がまるごと空白になってしまう。そうならないよう全体も保護しておく。
+  try {
   const NS = "http://www.w3.org/2000/svg";
 
   // ---- 実データ(Python の aggregate.build_data の出力)を受け取る ----
@@ -577,7 +628,10 @@
 
   function lineChart(boxSel, cfg) {
     const box = $(boxSel); box.textContent = "";
-    const W = Math.max(560, box.clientWidth || 900), H = cfg.height || 300;
+    // 座標系の幅はカードの実際の幅にできるだけ合わせる(下限は極端に潰れる場合の保険のみ)。
+    // 以前は下限が560だったため、スマホ幅(実際は300px前後)でも座標系が560になり、
+    // SVGが表示幅に縮小されて軸ラベルなどの文字が実寸より大幅に小さく見えていた。
+    const W = Math.max(280, box.clientWidth || 900), H = cfg.height || 300;
     const P = { l: 46, r: 64, t: 14, b: 30 };
     const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img", "aria-label": cfg.aria || "" }, null);
     box.appendChild(svg);
@@ -660,7 +714,7 @@
 
   function stackedBar(boxSel, labels, rows) {
     const box = $(boxSel); box.textContent = "";
-    const W = Math.max(560, box.clientWidth || 900), H = 300;
+    const W = Math.max(280, box.clientWidth || 900), H = 300;
     const P = { l: 44, r: 14, t: 14, b: 30 };
     const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img", "aria-label": "部位別セット数の積み上げバー" }, null);
     box.appendChild(svg);
@@ -733,6 +787,41 @@
       // 0 に戻されてしまうため、それらが済んだ後の次フレームまで待ってから反映する。
       requestAnimationFrame(() => requestAnimationFrame(() => { box.scrollLeft = box.scrollWidth; }));
     }
+    renderStreakInsight();
+  }
+
+  /** 直近の実施日から遡って、何日連続でトレーニングしたか。DATA.recent の先頭(最新の
+      ワークアウト日)を起点にするので、「今日はまだやっていない」だけでは途切れない。 */
+  function trailingStreak() {
+    const rows = DATA.recent || [];
+    if (!rows.length) return 0;
+    let d = parseYMD(rows[0].date), streak = 0;
+    for (let guard = 0; guard < 60; guard++) {
+      if ((DATA.calendar[fmtYMD(d)] || 0) <= 0) break;
+      streak++; d.setDate(d.getDate() - 1);
+    }
+    return streak;
+  }
+  // 連続実施が続いているときだけ、休養もひとことで促す(オーバートレーニングへの目配り)。
+  // 派手なアラートにはせず、2〜3日程度の普通の継続では出さない。
+  function renderStreakInsight() {
+    const box = $("#insight-calendar"); if (!box) return;
+    const streak = trailingStreak();
+    if (streak < 4) { box.style.display = "none"; box.textContent = ""; return; }
+    box.textContent = ""; box.style.display = "flex";
+    const ico = iconEl("flame", 15); ico.classList.add("ico"); box.appendChild(ico);
+    const txt = document.createElement("span");
+    txt.textContent = `直近 ${streak} 日連続でトレーニングしています。無理のない範囲で休養日も挟みましょう。`;
+    box.appendChild(txt);
+  }
+
+  // 横スクロールできる部品(表・カレンダー)のうち、実際にまだ隠れている内容があるものだけに
+  // 右端のフェード表示を出す。個別に案内文を付けるのではなく共通ルールとしてそろえるため、
+  // 対象を横断してここで一括判定する。
+  function markScrollables() {
+    document.querySelectorAll(".table-wrap, .cal-scroll").forEach((el) => {
+      el.classList.toggle("has-more-x", el.scrollWidth - el.clientWidth > 4);
+    });
   }
 
   function buildTable(sel, headers, rows) {
@@ -914,7 +1003,11 @@
   }
   /** 数字を 0 から目標値まで数え上げる(アイコンが増えるのと歩調を合わせるため)。 */
   function countUp(node, value) {
-    if (value == null) { node.textContent = "—"; return; }
+    // 0(その期間にまだ記録が無い)は「0kg」ではなく「―」にする。
+    // ひとつ前の期間の比較値(prevKg)は既にこの扱いなので、当月・今週・今年の主役の数字もそろえる。
+    // そうしないと、記録が始まる前や月・週の切り替わり直後に大きな「0kg」が目に入り、
+    // 「サボっている」という誤ったメッセージになってしまうため。
+    if (value == null || value <= 0) { node.textContent = "—"; return; }
     const target = Math.round(value);
     const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduce || target <= 0) { node.textContent = target.toLocaleString(); return; }
@@ -1131,11 +1224,18 @@
     rows.forEach((p) => {
       const tr = document.createElement("tr");
       const c1 = document.createElement("td"); c1.textContent = p.name;
-      const c2 = document.createElement("td");
+      if (p.isFirst) {
+        // その種目を初めて記録した日がそのまま自己ベストになっているだけの行に、
+        // 「本当に前回を上回った」記録と見分けが付くよう軽いタグを添える。
+        const tag = document.createElement("span"); tag.className = "chip-new";
+        tag.textContent = "初挑戦"; tag.title = "この種目を初めて記録した日の記録です";
+        c1.appendChild(tag);
+      }
+      const c2 = document.createElement("td"); c2.dataset.label = "記録";
       c2.textContent = p.recordType === "BODYWEIGHT_REPS" ? `${p.reps}回(自重)` : `${trimN(p.weightKg)}kg × ${p.reps}`;
-      const c3 = document.createElement("td"); c3.className = "num pr-est";
+      const c3 = document.createElement("td"); c3.className = "num pr-est"; c3.dataset.label = "推定1RM";
       c3.textContent = p.e1rm != null ? `${p.e1rm}kg` : "—";
-      const c4 = document.createElement("td"); c4.textContent = fmtMDW(p.date);
+      const c4 = document.createElement("td"); c4.dataset.label = "達成日"; c4.textContent = fmtMDW(p.date);
       tr.appendChild(c1); tr.appendChild(c2); tr.appendChild(c3); tr.appendChild(c4);
       tb.appendChild(tr);
     });
@@ -1163,12 +1263,20 @@
       (w.exercises || []).forEach((e) => {
         const nm = document.createElement("span"); nm.className = "exname"; nm.textContent = e.name;
         const sv = document.createElement("span"); sv.className = "exsets";
-        const setStrs = e.sets.map((s) => {
-          if (s.weight == null && s.reps == null) return "—";
-          const wpart = s.weight != null ? trimN(s.weight) + (s.unit === "LB" ? "lb" : "kg") : "自重";
-          return s.reps != null ? `${wpart}×${s.reps}` : wpart;
+        // セットごとに chip(1個の span)へ分ける。1本の文字列のまま流し込むと、
+        // 狭い列で「12kg×10」のような値の途中で改行されることがあるため、
+        // chip 単位(空白のある箇所)でしか折り返さないようにする。
+        e.sets.forEach((s, si) => {
+          let val;
+          if (s.weight == null && s.reps == null) { val = "—"; }
+          else {
+            const wpart = s.weight != null ? trimN(s.weight) + (s.unit === "LB" ? "lb" : "kg") : "自重";
+            val = s.reps != null ? `${wpart}×${s.reps}` : wpart;
+          }
+          const chip = document.createElement("span"); chip.className = "setchip";
+          chip.textContent = (si > 0 ? "/ " : "") + val;
+          sv.appendChild(chip);
         });
-        sv.textContent = setStrs.join(" / ");
         grid.appendChild(nm); grid.appendChild(sv);
       });
       card.appendChild(grid);
@@ -1190,7 +1298,7 @@
 
   const STRENGTH_SUB = {
     big3: "ベンチプレス・スクワット・デッドリフトの推定1RM(1回だけ挙げられる最大重量の推定値)を足した値。3種目すべてを実施した週だけ点を打つ",
-    each: "週ごとのトップセット(いちばん重いセット)と、そこから換算した推定1RM",
+    each: "週ごとのトップセット(いちばん重いセット)と、そこから換算した推定1RM(実測ではなく、回数の多いセットほど誤差が大きくなる目安)",
   };
   // 期間切り替えがあるグラフ(重量の推移・からだ)の初期表示。直近の変化を見たい場面が多いので
   // 12ヶ月ではなく3ヶ月から始める。markup 側の aria-pressed="true" と必ずそろえること。
@@ -1256,6 +1364,7 @@
       mv.rows.map((r, i) => { const total = PARTS.reduce((a, p) => a + (r[p.key] || 0), 0); return [mv.labels[i]].concat(PARTS.map((p) => String(r[p.key] || 0)), [String(total)]); }));
 
     renderCalendar(N_WEEKS);   // カレンダーは「1年の継続」を見る図なので12ヶ月固定
+    markScrollables();
   }
 
   // 重量の推移・からだ(体組成)は期間を切り替えられる。
@@ -1299,6 +1408,7 @@
       txt.textContent = `${name}の記録はまだありません。アプリで記録すると、ここに推移とコメントが表示されます。`;
       box.appendChild(txt); return;
     }
+    const presentCount = series.filter((v) => v != null).length;
     const total = Math.round((last - first) * 10) / 10;
     txt.textContent = `${name}は${lbl}で `;
     const b = document.createElement("b"); b.textContent = `${total >= 0 ? "+" : ""}${total}${unit}`; txt.appendChild(b);
@@ -1315,6 +1425,9 @@
     } else {
       tail += Math.abs(total) < 0.05 ? "横ばいです。" : (total > 0 ? "増加傾向です。" : "減少傾向です。");
     }
+    // 記録が2〜3点程度しか無い段階でも「順調です」のように言い切ると、わずかな変動を
+    // 安定した傾向だと誤解させかねないため、データ点数が少ないうちは控えめな一言を添える。
+    if (presentCount < 3) tail += " まだ記録が少ないため参考値です。";
     txt.appendChild(document.createTextNode(tail));
     box.appendChild(txt);
   }
@@ -1340,6 +1453,7 @@
       const showTable = !table.classList.contains("show");
       table.classList.toggle("show", showTable); chart.classList.toggle("hide", showTable);
       b.textContent = showTable ? "グラフに戻る" : "表で見る";
+      if (showTable) markScrollables();   // 表を出したときだけ測れる(隠れている間は幅が0のため)
     });
   });
 
@@ -1478,6 +1592,17 @@
     ro.observe(document.body);
     const wrap = document.querySelector(".wrap");
     if (wrap) ro.observe(wrap);
+  }
+  } catch (err) {
+    console.error("[dashboard] 初期化に失敗しました", err);
+    const host = document.querySelector(".wrap");
+    if (host) {
+      const p = document.createElement("div");
+      p.className = "chart-sub";
+      p.style.cssText = "padding:40px 20px;text-align:center;";
+      p.textContent = "データの読み込みに失敗しました。ページを再読み込みしてください。";
+      host.prepend(p);
+    }
   }
 })();
 </script>
