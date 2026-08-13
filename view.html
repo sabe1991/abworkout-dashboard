@@ -695,6 +695,7 @@
     });
   }
 
+  let calendarScrolledOnce = false;  // 初回表示だけ右端(直近)へスクロールし、以降はユーザーの操作を尊重する
   function renderCalendar(nWeeks) {
     const host = $("#calendar"); host.textContent = "";
     const cal = calendar.slice(-nWeeks), ws = weeks.slice(-nWeeks);
@@ -725,6 +726,13 @@
     grid.appendChild(Object.assign(document.createElement("span"), { className: "cal-goal" }));
     cal.forEach((row) => { const c = row.filter((v) => v > 0).length; const s = document.createElement("span"); s.className = "cal-goal" + (c >= 3 ? " met" : ""); s.textContent = c; grid.appendChild(s); });
     host.appendChild(grid);
+    if (!calendarScrolledOnce && host.parentElement.scrollWidth > host.parentElement.clientWidth) {
+      calendarScrolledOnce = true;
+      const box = host.parentElement;
+      // 描画直後に scrollLeft を入れても、直後の別処理(iframe高さ調整のレイアウト確定など)で
+      // 0 に戻されてしまうため、それらが済んだ後の次フレームまで待ってから反映する。
+      requestAnimationFrame(() => requestAnimationFrame(() => { box.scrollLeft = box.scrollWidth; }));
+    }
   }
 
   function buildTable(sel, headers, rows) {
