@@ -664,13 +664,19 @@
           + `L${X(lastI)},${H - P.b}L${X(first)},${H - P.b}Z`;
         el("path", { d: d0, class: "fill" + s.cls, opacity: 0.1 }, svg);
       }
-      // 線は隣り合う present 点のみ結ぶ(欠測をまたぐ区間は描かない)
+      // 線のつなぎ方: 既定は隣り合う present 点のみ結ぶ(欠測週をまたぐ区間は描かない)。
+      // ただし cfg.connectGaps が真の場合は、間に欠測があっても present 点どうしを結ぶ
+      // (体重・体脂肪率など、毎週は測らない前提の記録向け)。
       let d = "";
-      s.values.forEach((v, i) => {
-        if (v == null) return;
-        const prev = i > 0 ? s.values[i - 1] : null;
-        d += `${prev != null ? "L" : "M"}${X(i)},${Y(v)}`;
-      });
+      if (cfg.connectGaps) {
+        d = pts.map(([i, v], k) => `${k ? "L" : "M"}${X(i)},${Y(v)}`).join("");
+      } else {
+        s.values.forEach((v, i) => {
+          if (v == null) return;
+          const prev = i > 0 ? s.values[i - 1] : null;
+          d += `${prev != null ? "L" : "M"}${X(i)},${Y(v)}`;
+        });
+      }
       if (d) el("path", { d, fill: "none", class: "line" + s.cls, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
       // present 点それぞれに小さな点(記録が少ないときでも見えるように)
       pts.forEach(([i, v]) => el("circle", { cx: X(i), cy: Y(v), r: 2.6, class: `fill${s.cls}` }, svg));
@@ -1376,10 +1382,10 @@
     const subF = $("#chart-sub-fat");
     if (subF) subF.textContent = "週平均" + (tgtF != null ? ` ・ 点線は目標 ${trimN(tgtF)}%` : "");
 
-    lineChart("#chart-weight", { dates: ds, height: 240, aria: "体重の推移",
+    lineChart("#chart-weight", { dates: ds, height: 240, aria: "体重の推移", connectGaps: true,
       series: [{ label: "体重", cls: 1, values: bw, unit: "kg", area: true }],
       target: tgtW != null ? { v: tgtW, label: `目標 ${trimN(tgtW)}` } : null });
-    lineChart("#chart-fat", { dates: ds, height: 240, aria: "体脂肪率の推移",
+    lineChart("#chart-fat", { dates: ds, height: 240, aria: "体脂肪率の推移", connectGaps: true,
       series: [{ label: "体脂肪率", cls: 1, values: bf, unit: "%", area: true }],
       target: tgtF != null ? { v: tgtF, label: `目標 ${trimN(tgtF)}` } : null });
 
