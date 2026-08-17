@@ -1203,7 +1203,8 @@
     // 日付は "YYYY-MM-DD" 形式なので、文字列のまま大小を比べれば日付の前後と一致する。
     const [ay, am, ad] = (DATA.anchor || fmtYMD(new Date())).split("-").map(Number);
     const since = fmtYMD(new Date(ay, am - 1 - PR_MONTHS, ad));
-    const inPeriod = (DATA.pr || []).filter((p) => p.date && p.date >= since)
+    // isFirst(その種目を初めて記録した日=まだ更新していない)は「更新」ではないので除外する
+    const inPeriod = (DATA.pr || []).filter((p) => p.date && p.date >= since && !p.isFirst)
       // 達成日の新しい順。元の配列は推定1RM の高い順に並んでおり、JS の並べ替えは
       // 同じ値どうしの順番を保つ(安定ソート)ので、同じ日なら重い記録が上に来る。
       .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
@@ -1224,13 +1225,6 @@
     rows.forEach((p) => {
       const tr = document.createElement("tr");
       const c1 = document.createElement("td"); c1.textContent = p.name;
-      if (p.isFirst) {
-        // その種目を初めて記録した日がそのまま自己ベストになっているだけの行に、
-        // 「本当に前回を上回った」記録と見分けが付くよう軽いタグを添える。
-        const tag = document.createElement("span"); tag.className = "chip-new";
-        tag.textContent = "初挑戦"; tag.title = "この種目を初めて記録した日の記録です";
-        c1.appendChild(tag);
-      }
       const c2 = document.createElement("td"); c2.dataset.label = "記録";
       c2.textContent = p.recordType === "BODYWEIGHT_REPS" ? `${p.reps}回(自重)` : `${trimN(p.weightKg)}kg × ${p.reps}`;
       const c3 = document.createElement("td"); c3.className = "num pr-est"; c3.dataset.label = "推定1RM";
