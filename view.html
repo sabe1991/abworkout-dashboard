@@ -523,7 +523,7 @@
 </div>
 
 <!-- ビルド時にこの下の window.__DATA__ が実データ(aggregate.build_data の出力)へ置き換わる。 -->
-<script id="__data__">window.__DATA__ = window.__DATA__ || {"weeks":[],"big3Ids":{},"big3Series":[],"perExercise":{},"exerciseNames":{},"volumeWeek":[],"monthlyLabels":[],"monthlyRows":[],"partOrder":[],"partLabel":{},"calendar":{},"weightSeries":[],"fatSeries":[],"goal":{},"pr":[],"recent":[],"anchor":null,"lifted":null,"aiPlan":null};</script>
+<script id="__data__">window.__DATA__ = window.__DATA__ || {"weeks":[],"big3Ids":{},"big3Series":[],"big3Fresh":[],"perExercise":{},"exerciseNames":{},"volumeWeek":[],"monthlyLabels":[],"monthlyRows":[],"partOrder":[],"partLabel":{},"calendar":{},"weightSeries":[],"fatSeries":[],"goal":{},"pr":[],"recent":[],"anchor":null,"lifted":null,"aiPlan":null};</script>
 <script>
 (() => {
   "use strict";
@@ -551,7 +551,8 @@
     // 1種目のときのような「トップセット重量」に相当するものが無い。
     // top を null で返し、グラフ・凡例・表を1本だけの表示に切り替える合図にする。
     if (selKey === "big3") {
-      return { name: "BIG3", metric: "推定1RM合計", top: null, e1rm: (DATA.big3Series || []).slice() };
+      return { name: "BIG3", metric: "推定1RM合計", top: null, e1rm: (DATA.big3Series || []).slice(),
+               fresh: (DATA.big3Fresh || []).slice() };
     }
     const k = SEL2KEY[selKey] || selKey;
     const exId = DATA.big3Ids[k];
@@ -667,19 +668,30 @@
       // 線のつなぎ方: 既定は隣り合う present 点のみ結ぶ(欠測週をまたぐ区間は描かない)。
       // ただし cfg.connectGaps が真の場合は、間に欠測があっても present 点どうしを結ぶ
       // (体重・体脂肪率など、毎週は測らない前提の記録向け)。
-      let d = "";
+      // s.fresh が指定されている系列(BIG3 合計など、値を持ち越して埋めている系列)は、
+      // 両端が「その週の実測」の区間だけ実線、どちらかが持ち越しの区間は破線にする。
+      const isFresh = (i) => !s.fresh || s.fresh[i] !== false;
       if (cfg.connectGaps) {
-        d = pts.map(([i, v], k) => `${k ? "L" : "M"}${X(i)},${Y(v)}`).join("");
+        const d = pts.map(([i, v], k) => `${k ? "L" : "M"}${X(i)},${Y(v)}`).join("");
+        if (d) el("path", { d, fill: "none", class: "line" + s.cls, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
       } else {
+        let dSolid = "", dDash = "";
         s.values.forEach((v, i) => {
           if (v == null) return;
           const prev = i > 0 ? s.values[i - 1] : null;
-          d += `${prev != null ? "L" : "M"}${X(i)},${Y(v)}`;
+          if (prev == null) return;
+          const seg = `M${X(i - 1)},${Y(prev)}L${X(i)},${Y(v)}`;
+          if (isFresh(i - 1) && isFresh(i)) dSolid += seg; else dDash += seg;
         });
+        if (dSolid) el("path", { d: dSolid, fill: "none", class: "line" + s.cls, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+        if (dDash) el("path", { d: dDash, fill: "none", class: "line" + s.cls, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round", "stroke-dasharray": "5,4" }, svg);
       }
-      if (d) el("path", { d, fill: "none", class: "line" + s.cls, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
-      // present 点それぞれに小さな点(記録が少ないときでも見えるように)
-      pts.forEach(([i, v]) => el("circle", { cx: X(i), cy: Y(v), r: 2.6, class: `fill${s.cls}` }, svg));
+      // present 点それぞれに小さな点(記録が少ないときでも見えるように)。
+      // 持ち越しの週(isFresh=false)は塗りつぶさず輪だけにして、実測点と見分けられるようにする。
+      pts.forEach(([i, v]) => {
+        if (isFresh(i)) el("circle", { cx: X(i), cy: Y(v), r: 2.6, class: `fill${s.cls}` }, svg);
+        else el("circle", { cx: X(i), cy: Y(v), r: 2.4, fill: "var(--surface)", stroke: `var(--s${s.cls})`, "stroke-width": 1.4 }, svg);
+      });
       if (pts.length) {
         const [li, lv] = pts[pts.length - 1];
         el("circle", { cx: X(li), cy: Y(lv), r: 4.5, class: `fill${s.cls} dotring` }, svg);
@@ -1297,7 +1309,7 @@
   }
 
   const STRENGTH_SUB = {
-    big3: "ベンチプレス・スクワット・デッドリフトの推定1RM(1回だけ挙げられる最大重量の推定値)を足した値。3種目すべてを実施した週だけ点を打つ",
+    big3: "ベンチプレス・スクワット・デッドリフトの推定1RM(1回だけ挙げられる最大重量の推定値)を足した値。各種目の直前の記録を持ち越して毎週の合計を出す。実線・塗りつぶしの点=その週に3種目すべて実施、破線・輪だけの点=一部を過去の記録で持ち越し",
     each: "週ごとのトップセット(いちばん重いセット)と、そこから換算した推定1RM(実測ではなく、回数の多いセットほど誤差が大きくなる目安)",
   };
   // 期間切り替えがあるグラフ(重量の推移・からだ)の初期表示。直近の変化を見たい場面が多いので
@@ -1309,12 +1321,13 @@
     const ex = exSeries(state.exercise);
     const isTotal = ex.top == null;   // BIG3 合計を選んでいる(系列は推定1RM の1本だけ)
     const w = isTotal ? null : ex.top.slice(-k), rm = ex.e1rm.slice(-k);
+    const fresh = isTotal ? ex.fresh.slice(-k) : null;
     $("#stitle-strength").textContent = isTotal ? "BIG3 推定1RM合計" : "重量";
     $("#wtitle-strength").textContent = monthsLabel(k);
     $("#ssub-strength").textContent = isTotal ? STRENGTH_SUB.big3 : STRENGTH_SUB.each;
 
     const series = isTotal
-      ? [{ label: "推定1RM合計", cls: 2, values: rm, unit: "kg", area: true }]
+      ? [{ label: "推定1RM合計", cls: 2, values: rm, unit: "kg", area: true, fresh }]
       : [{ label: "トップセット重量", cls: 1, values: w, unit: "kg", area: true },
          { label: "推定1RM", cls: 2, values: rm, unit: "kg" }];
     setLegend(series);
@@ -1326,29 +1339,34 @@
       const ico = iconEl("trendUp", 15); ico.classList.add("ico"); box.appendChild(ico);
       const txt = document.createElement("span");
       const present = []; rm.forEach((v, i) => { if (v != null) present.push(v); });
+      const lastFresh = isTotal && fresh && fresh.length ? fresh[fresh.length - 1] : true;
       if (present.length === 0) {
-        // 合計は「3種目そろった週」しか点にならないので、記録が無いのとは意味が違う。
+        // 合計は「ベンチ・スクワット・デッドリフトが最低1回ずつ出そろう」までは点が打てない。
         // 「まだ記録していない」と読めてしまうと誤解を招くため、文言を分ける。
         txt.textContent = isTotal
-          ? "ベンチプレス・スクワット・デッドリフトを同じ週にすべて実施した週が、まだありません。3種目そろった週から合計を表示します。"
+          ? "ベンチプレス・スクワット・デッドリフトがまだ3種目そろって記録されていません。3種目とも1回以上記録すると合計を表示します。"
           : `${ex.name}の記録はまだありません。アプリで記録すると、ここに推移が表示されます。`;
       } else if (present.length === 1) {
         txt.textContent = `${ex.name}の${ex.metric}は現在 `;
         const b = document.createElement("b"); b.textContent = `${present[0]}kg`; txt.appendChild(b);
-        txt.appendChild(document.createTextNode("。記録が増えると変化を追えるようになります。"));
+        txt.appendChild(document.createTextNode(isTotal && !lastFresh
+          ? "。一部の種目は過去の記録を持ち越して算出(輪だけの点)。記録が増えると変化を追えるようになります。"
+          : "。記録が増えると変化を追えるようになります。"));
       } else {
         const cur = present[present.length - 1], prev = present[present.length - 2];
         const diff = Math.round((cur - prev) * 10) / 10;
         const judge = diff >= 1 ? "伸びています。" : diff <= -1 ? "やや下がっています。" : "横ばいです。";
-        txt.textContent = `${ex.name}の${ex.metric}は${isTotal ? "3種目そろえた前回から " : "前回から "}`;
+        txt.textContent = `${ex.name}の${ex.metric}は前回から `;
         const b = document.createElement("b"); b.textContent = `${diff >= 0 ? "+" : ""}${diff}kg`; txt.appendChild(b);
-        txt.appendChild(document.createTextNode(`(現在 ${cur}kg)。${judge}`));
+        txt.appendChild(document.createTextNode(`(現在 ${cur}kg)。${judge}`
+          + (isTotal && !lastFresh ? " ※一部の種目は過去の記録を持ち越して算出(輪だけの点)。" : "")));
       }
       box.appendChild(txt);
     }
     if (isTotal) {
-      buildTable("#table-strength", [{ label: "週" }, { label: "推定1RM合計", num: true }],
-        ds.map((d, i) => [fmtMD(d) + "週", rm[i] == null ? "—" : rm[i] + "kg"])
+      buildTable("#table-strength", [{ label: "週" }, { label: "推定1RM合計", num: true }, { label: "内訳" }],
+        ds.map((d, i) => [fmtMD(d) + "週", rm[i] == null ? "—" : rm[i] + "kg",
+          rm[i] == null ? "" : (fresh[i] ? "3種目実施" : "一部持ち越し")])
           .filter((r) => r[1] !== "—").reverse());
     } else {
       buildTable("#table-strength", [{ label: "週" }, { label: "トップセット", num: true }, { label: "推定1RM", num: true }],

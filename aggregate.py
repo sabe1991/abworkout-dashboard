@@ -201,18 +201,39 @@ def build_data(data: dict, today: date | None = None) -> dict:
             big3_ids[key] = found
 
     # BIG3 推定1RM合計の週次系列。
-    # 値を出すのは「その週に3種目すべてを実施した週」だけで、1種目でも欠けた週は None(点を打たない)。
-    # 以前は種目ごとに直前の値を持ち越して足していたが、それだとベンチだけやった週の合計が
-    # スクワット・デッドリフトの過去の値で埋められ、「その週の3種目の力の合計」ではなくなっていた。
-    # また BIG3 のどれかがそもそも記録に無い(種目IDが解決できない)場合は、全週 None になる。
+    # 各種目ごとに「直前に記録した週の推定1RM」を持ち越して毎週合計を出す(3種目を同じ週に
+    # やることは少なく、そろった週だけに絞ると点がほとんど打てないため)。
+    # ただし持ち越した値を含む週は big3_fresh を False にし、フロント側で線を薄く/点を小さく
+    # するなど見た目を変えられるようにする(「その週すべて実施した」実測点との違いを示すため)。
+    # 3種目とも記録が無い期間(いずれかがまだ一度も記録されていない週)は None のまま。
+    # BIG3 のどれかがそもそも記録に無い(種目IDが解決できない)場合も、全週 None になる。
     big3_complete = len(big3_ids) == len(BIG3)
     big3_series = []
-    for wi in range(N_WEEKS):
-        cells = [per_ex_week.get(ex_id, {}).get(wi) for ex_id in big3_ids.values()]
-        if big3_complete and all(c and c.get("e1rm") is not None for c in cells):
-            big3_series.append(round(sum(c["e1rm"] for c in cells), 1))
-        else:
-            big3_series.append(None)
+    big3_fresh = []
+    if big3_complete:
+        carried = {}
+        for ex_id in big3_ids.values():
+            cells = per_ex_week.get(ex_id, {})
+            last = None
+            row = []
+            for wi in range(N_WEEKS):
+                entry = cells.get(wi)
+                fresh = entry is not None
+                if fresh:
+                    last = entry["e1rm"]
+                row.append((last, fresh))
+            carried[ex_id] = row
+        for wi in range(N_WEEKS):
+            row = [carried[ex_id][wi] for ex_id in big3_ids.values()]
+            if all(v is not None for v, _fresh in row):
+                big3_series.append(round(sum(v for v, _fresh in row), 1))
+                big3_fresh.append(all(fresh for _v, fresh in row))
+            else:
+                big3_series.append(None)
+                big3_fresh.append(False)
+    else:
+        big3_series = [None] * N_WEEKS
+        big3_fresh = [False] * N_WEEKS
 
     # --- 月次ボリューム(積み上げバー用): 週セット数を月にまとめる ---
     monthly = {}
@@ -304,6 +325,7 @@ def build_data(data: dict, today: date | None = None) -> dict:
         "weeks": week_iso,
         "big3Ids": big3_ids,
         "big3Series": big3_series,
+        "big3Fresh": big3_fresh,
         "perExercise": {str(ex_id): [per_ex_week.get(ex_id, {}).get(wi) for wi in range(N_WEEKS)]
                         for ex_id in per_ex_week},
         "exerciseNames": {str(e["id"]): e["name"] for e in bk.exercises.values()},
