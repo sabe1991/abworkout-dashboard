@@ -451,8 +451,8 @@
             <button type="button" data-weeks="52" aria-pressed="false">12ヶ月</button>
           </div>
           <select class="exsel" id="exsel" aria-label="表示する記録を選択">
-            <option value="big3">BIG3 推定1RM合計</option>
-            <option value="bench" selected>ベンチプレス</option>
+            <option value="big3" selected>BIG3 推定1RM合計</option>
+            <option value="bench">ベンチプレス</option>
             <option value="squat">スクワット</option>
             <option value="deadlift">デッドリフト</option>
           </select>
@@ -1319,7 +1319,7 @@
   // 期間切り替えがあるグラフ(重量の推移・からだ)の初期表示。直近の変化を見たい場面が多いので
   // 12ヶ月ではなく3ヶ月から始める。markup 側の aria-pressed="true" と必ずそろえること。
   const DEFAULT_WEEKS = 13;
-  const state = { exercise: "bench", bodyWeeks: DEFAULT_WEEKS, strengthWeeks: DEFAULT_WEEKS };
+  const state = { exercise: "big3", bodyWeeks: DEFAULT_WEEKS, strengthWeeks: DEFAULT_WEEKS };
   function renderAll() {
     const k = state.strengthWeeks, ds = weeks.slice(-k);
     const ex = exSeries(state.exercise);
