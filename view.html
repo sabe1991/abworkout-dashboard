@@ -602,7 +602,11 @@
     const mag = Math.pow(10, Math.floor(Math.log10(step0)));
     let step = mag;
     for (const m of [1, 2, 2.5, 5, 10]) { if (mag * m >= step0) { step = mag * m; break; } }
-    const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step;
+    const lo = Math.floor(min / step) * step;
+    let hi = Math.ceil(max / step) * step;
+    // min===max がちょうど step の倍数だと lo===hi になり、後段の Y 座標計算が
+    // (v - ymin) / (ymax - ymin) の0除算で壊れて何も描画されなくなる。最低1段は確保する。
+    if (hi <= lo) hi = lo + step;
     const ticks = [];
     for (let v = lo; v <= hi + 1e-9; v += step) ticks.push(Math.round(v * 100) / 100);
     return ticks;
