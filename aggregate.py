@@ -34,7 +34,7 @@ PART_CLS = {v[0]: v[2] for v in BODYPART_MAP.values()}
 BIG3 = [
     ("bench", "ベンチプレス", ["バーベルベンチプレス", "ベンチプレス"]),
     ("squat", "スクワット",   ["バーベルスクワット", "スクワット"]),
-    ("dead",  "デッドリフト", ["デッドリフト"]),
+    ("dead",  "デッドリフト", ["デッドリフト(バーベル)", "デッドリフト"]),
 ]
 
 
@@ -190,11 +190,20 @@ def build_data(data: dict, today: date | None = None) -> dict:
     for key, _label, needles in BIG3:
         found = None
         for needle in needles:
+            # 「バーベル版の種目が実在するか」ではなく「実際に記録したことがあるか」で絞る。
+            # 種目マスタにはバーベル版が定義されているだけで一度も記録が無いことも多く、
+            # そのまま優先すると(記録が無いので)合計が永久に値なしになってしまうため。
+            # 一度もその優先種目を記録していなければ、次の needle(より広い一致)へフォールバックする。
             cands = [e for e in bk.exercises.values() if needle in e["name"]
-                     and e["recordType"] == "WEIGHT_REPS"]
+                     and e["recordType"] == "WEIGHT_REPS" and e["id"] in per_ex_week]
             if cands:
-                # 実際に記録があるものを優先、その中で PR の高い順
-                cands.sort(key=lambda e: pr.get(e["id"], {}).get("e1rm", 0), reverse=True)
+                # 同じ needle に複数の種目名がマッチした場合(例: 「デッドリフト」は
+                # バーベル・ダンベル・ルーマニアン・スモウの全種目名を含んでしまう)は、
+                # 記録した週数が多い(継続的にやっている)ものを優先する。PR の推定1RM だけで
+                # 選ぶと、たまたま高レップの1回だけ記録した種目に毎回選択先が飛んでしまい、
+                # BIG3合計の元になる種目が記録のたびに入れ替わって履歴が積み上がらなくなるため。
+                cands.sort(key=lambda e: (len(per_ex_week.get(e["id"], {})),
+                                           pr.get(e["id"], {}).get("e1rm", 0)), reverse=True)
                 found = cands[0]["id"]
                 break
         if found:
