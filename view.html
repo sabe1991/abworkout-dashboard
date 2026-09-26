@@ -1271,7 +1271,6 @@
       const dlab = document.createElement("span"); dlab.className = "log-date"; dlab.textContent = fmtMDW(w.date); h.appendChild(dlab);
       const meta = document.createElement("span"); meta.className = "log-meta";
       const mparts = [];
-      if (w.durationMin != null) mparts.push(`${w.durationMin}分`);
       if (w.volume) mparts.push(`総挙上量 ${w.volume.toLocaleString()}kg`);
       meta.textContent = mparts.join(" ・ ");
       h.appendChild(meta); card.appendChild(h);
