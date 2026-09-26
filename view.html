@@ -353,8 +353,11 @@
   .log-ex .exsets .setchip { white-space: nowrap; }
   @media (max-width: 560px) {
     /* 種目名の下にセット内容を積む(横並びだと値の列が狭くなりすぎるため)。 */
-    .log-ex { grid-template-columns: 1fr; row-gap: 2px; }
+    /* 種目名とセット内容の間は少しだけ空け、次の種目との間はそれより広く空けて、
+       どのセットがどの種目のものかをまとまりで読めるようにする(一律 2px だと詰まって見えた)。 */
+    .log-ex { grid-template-columns: 1fr; row-gap: 5px; }
     .log-ex .exname { font-weight: 600; color: var(--ink); }
+    .log-ex .exname:not(:first-child) { margin-top: 9px; }
   }
   .log-note { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
   .pr-est { color: var(--ink-2); }
