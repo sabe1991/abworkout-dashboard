@@ -332,21 +332,16 @@
   .cal-legend { display: flex; align-items: center; gap: 4px; font-size: 10.5px; color: var(--muted); margin-top: 8px; }
   .cal-legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
 
-  /* ---------- AI plan / logs ---------- */
-  .st { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; border-radius: 9px; padding: 0 9px; line-height: 18px; }
-  .st-done { color: var(--good); background: var(--good-bg); }
-  .st-pending { color: var(--ink-2); border: 1px solid var(--border); }
+  /* ---------- logs ---------- */
   /* 絵文字の代わりに使う線画アイコン。色は currentColor(親の文字色)に追従する */
   .svgico { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
   .svgico svg { display: block; }
-  .chip-next { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--surface); background: var(--accent); padding: 1px 8px; border-radius: 9px; }
   .chip-new { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--good); background: var(--good-bg); padding: 1px 7px; border-radius: 9px; vertical-align: 2px; margin-left: 5px; }
   .menu-note { font-size: 12px; color: var(--ink-2); background: var(--surface-2); border-radius: 8px; padding: 8px 12px; margin-top: 12px; }
   .log-card { border-top: 1px solid var(--grid); padding: 12px 2px 4px; margin-top: 12px; }
   .log-card:first-of-type { border-top: none; margin-top: 0; padding-top: 2px; }
   .log-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
   .log-date { font-weight: 700; font-size: 13.5px; }
-  .log-kind { font-size: 11px; color: var(--ink-2); background: var(--page); border: 1px solid var(--border); border-radius: 9px; padding: 0 8px; }
   .log-meta { font-size: 11.5px; color: var(--muted); }
   /* minmax(0, 1fr) にしないと、値の列が種目名の列(最大240px)に押されて
      極端に狭くなったとき、数値の途中で強制的に折り返されることがある。 */
@@ -406,18 +401,11 @@
   <!-- sticky nav -->
   <nav class="nav" aria-label="セクション">
     <ul>
-      <li><a href="#sec-now" class="active">今週</a></li>
-      <li><a href="#sec-growth">成長の証拠</a></li>
+      <li><a href="#sec-growth" class="active">成長の証拠</a></li>
       <li><a href="#sec-stack">積み上げ</a></li>
       <li><a href="#sec-body">からだ</a></li>
     </ul>
   </nav>
-
-  <!-- ② 今週 -->
-  <section class="block" id="sec-now">
-    <div class="sec-head"><h2>今週</h2><span class="sec-note">AIが組んだ週間メニューと進捗</span></div>
-    <div class="card" id="ai-plan-card"></div>
-  </section>
 
   <!-- ③ 成長の証拠 -->
   <section class="block" id="sec-growth">
@@ -1173,49 +1161,6 @@
     });
   }
 
-  // ---- AI週間プラン ----
-  function renderAiPlan() {
-    const host = $("#ai-plan-card"); host.textContent = "";
-    const plan = DATA.aiPlan;
-    const head = document.createElement("div"); head.className = "chart-head";
-    const hleft = document.createElement("div");
-    const title = document.createElement("div"); title.className = "chart-title"; title.textContent = "AI週間プラン";
-    const sub = document.createElement("div"); sub.className = "chart-sub";
-    hleft.appendChild(title); hleft.appendChild(sub); head.appendChild(hleft); host.appendChild(head);
-    if (!plan || !plan.days || !plan.days.length) {
-      sub.textContent = "まだ取り込まれた AI メニューがありません。アプリで生成すると、ここに週間プランが表示されます。";
-      return;
-    }
-    const meta = [`${plan.days.length}日構成`];
-    if (plan.adherence != null) meta.push(`先週の遵守率 ${Math.round(plan.adherence * 100)}%`);
-    sub.textContent = "AI が提案した週間メニュー ・ " + meta.join(" ・ ");
-    const firstPending = plan.days.findIndex((d) => d.status === "PENDING");
-    plan.days.forEach((day, di) => {
-      const card = document.createElement("div"); card.className = "log-card";
-      const h = document.createElement("div"); h.className = "log-head";
-      const dlab = document.createElement("span"); dlab.className = "log-date";
-      dlab.textContent = day.date ? fmtMDW(day.date) : day.label;
-      h.appendChild(dlab);
-      if (day.date && day.label) { const kind = document.createElement("span"); kind.className = "log-kind"; kind.textContent = day.label; h.appendChild(kind); }
-      const st = document.createElement("span");
-      if (day.status === "DONE" || day.status === "COMPLETED") { st.className = "st st-done"; st.appendChild(iconEl("check", 13)); st.appendChild(document.createTextNode("完了")); }
-      else { st.className = "st st-pending"; st.textContent = "予定"; }
-      h.appendChild(st);
-      if (di === firstPending) { const chip = document.createElement("span"); chip.className = "chip-next"; chip.textContent = "次回"; h.appendChild(chip); }
-      card.appendChild(h);
-      const grid = document.createElement("div"); grid.className = "log-ex";
-      (day.exercises || []).forEach((e) => {
-        const nm = document.createElement("span"); nm.className = "exname"; nm.textContent = e.name;
-        const sv = document.createElement("span"); sv.className = "exsets";
-        sv.textContent = e.summary || "";
-        grid.appendChild(nm); grid.appendChild(sv);
-      });
-      card.appendChild(grid);
-      if (day.note) { const note = document.createElement("div"); note.className = "log-note"; note.appendChild(iconEl("note", 13)); note.appendChild(document.createTextNode(" " + day.note)); card.appendChild(note); }
-      host.appendChild(card);
-    });
-  }
-
   // ---- 自己ベスト(PR)一覧 ----
   const PR_MONTHS = 3;  // 対象期間(この値を変えれば絞り込みの長さを変えられる)
   const PR_MAX = 10;    // 表示する最大件数
@@ -1498,7 +1443,7 @@
   // ページ内アンカー(#sec-… 等)への遷移をやめ、JS で対象へスクロールする。
   // Streamlit 埋め込み(srcdoc の iframe)では素のアンカー遷移が iframe 全体の再読み込みを
   // 引き起こし、全チャートの再描画やちらつき(更新ボタンの増殖)の原因になるため、既定動作を止める。
-  // イベント委譲にして、ナビだけでなくヒーローの「今週のメニューへ」など動的生成リンクもまとめて拾う。
+  // イベント委譲にして、ナビだけでなくヒーローなどの動的生成リンクもまとめて拾う。
   document.addEventListener("click", (e) => {
     const a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
     if (!a) return;
@@ -1531,7 +1476,6 @@
   }
   safeRender("単位の切り替え", null, setupEquivUnit);
   safeRender("ヒーロー", ".hero-main", renderHero);
-  safeRender("AI週間プラン", "#ai-plan-card", renderAiPlan);
   safeRender("自己ベスト", null, renderPR);
   safeRender("直近のワークアウト", null, renderRecent);
   safeRender("グラフ", null, renderAll);
