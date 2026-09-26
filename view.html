@@ -345,7 +345,9 @@
   .log-meta { font-size: 11.5px; color: var(--muted); }
   /* minmax(0, 1fr) にしないと、値の列が種目名の列(最大240px)に押されて
      極端に狭くなったとき、数値の途中で強制的に折り返されることがある。 */
-  .log-ex { display: grid; grid-template-columns: minmax(120px, 200px) minmax(0, 1fr); gap: 4px 12px; margin-top: 6px; font-size: 12.5px; }
+  /* 列の間は 32px。12px だと、長い種目名が列幅いっぱいになったとき(フォントが横に広い PC など)
+     セット内容とくっついて見えたため広げた。 */
+  .log-ex { display: grid; grid-template-columns: minmax(140px, 240px) minmax(0, 1fr); gap: 4px 32px; margin-top: 6px; font-size: 12.5px; }
   .log-ex .exname { color: var(--ink-2); }
   /* セットの値(「12kg×10」など)を1個ずつの chip に分け、chip 単位でしか折り返さないようにする。
      文字列を1本のまま流し込むと、狭い列では数値の途中で改行されることがあるため。 */
