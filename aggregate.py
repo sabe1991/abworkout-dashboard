@@ -89,6 +89,90 @@ def _with_is_first(pr: dict, first_seen: dict) -> list[dict]:
     return out
 
 
+def _merge_best(cells: dict, key, wkg: float, reps: int, e1: float) -> None:
+    """cells[key](週または日)に1セットを反映する。top/reps は最重量のセット(同重量なら
+    回数の多いほう)、e1rm はその期間の全セットでの最大値。"""
+    cur = cells.get(key)
+    if cur is None:
+        cells[key] = {"top": wkg, "reps": reps, "e1rm": e1}
+        return
+    if wkg > cur["top"] or (wkg == cur["top"] and reps > cur["reps"]):
+        cur["top"], cur["reps"] = wkg, reps
+    cur["e1rm"] = max(cur["e1rm"], e1)
+
+
+# --- 種目ごとの伸び・停滞の一覧表 ---
+PROGRESS_WINDOW_WEEKS = 4      # 「直近4週」(今週を含む)。停滞の判定と判断材料に使う
+PROGRESS_PICK_WEEKS = 8        # 一覧表に載せる種目: 直近8週に…
+PROGRESS_PICK_MIN_DAYS = 2     # …2日以上実施した重量×回数の種目
+PROGRESS_DOWN_RATIO = 0.95     # 直近4週の最高が自己ベストのこの割合を下回ったら「下降」
+PROGRESS_SPARK_WEEKS = 12      # 小さな折れ線に使う週数
+PROGRESS_ORDER = {"down": 0, "flat": 1, "up": 2, "new": 3}
+
+
+def _progress_rows(bk: "Backup", ex_days: dict, per_ex_week: dict, pr: dict,
+                   first_seen: dict, anchor: date) -> list[dict]:
+    """最近続けている重量×回数の種目ごとに、推定1RM の伸び・停滞の状態と判断材料をまとめる。
+
+    状態(直近4週は今週を含む):
+    - up(伸び): 直近4週に自己ベストを更新した
+    - new(記録開始): 直近4週に初めて記録し、自己ベストがまだ初回の記録のまま
+      (初回を「更新」と数えると、始めたばかりの種目が必ず「伸び」に見えるため分ける)
+    - down(下降): 直近4週の最高が自己ベストより5%以上低い
+    - flat(横ばい): 上のどれでもない(自己ベストを4週以上更新していない)
+    """
+    this_monday = _monday(anchor)
+    win_from = (this_monday - timedelta(weeks=PROGRESS_WINDOW_WEEKS - 1)).isoformat()
+    prev_from = (this_monday - timedelta(weeks=2 * PROGRESS_WINDOW_WEEKS - 1)).isoformat()
+    pick_from = (this_monday - timedelta(weeks=PROGRESS_PICK_WEEKS - 1)).isoformat()
+    rows = []
+    for ex_id, days in ex_days.items():
+        e = bk.ex(ex_id)
+        best = pr.get(ex_id)
+        if not e or not best or best.get("e1rm") is None:
+            continue
+        if sum(1 for d in days if d >= pick_from) < PROGRESS_PICK_MIN_DAYS:
+            continue
+        recent = [v["e1rm"] for d, v in days.items() if d >= win_from]
+        before = [v["e1rm"] for d, v in days.items() if prev_from <= d < win_from]
+        recent_best = max(recent) if recent else None
+        before_best = max(before) if before else None
+        if best["date"] >= win_from:
+            status = "new" if best["date"] == first_seen.get(ex_id) else "up"
+        elif recent_best is not None and recent_best < best["e1rm"] * PROGRESS_DOWN_RATIO:
+            status = "down"
+        else:
+            status = "flat"
+        recent_days = sorted(d for d in days if d >= win_from)
+        interval = None
+        if len(recent_days) >= 2:
+            span = (_pdate(recent_days[-1]) - _pdate(recent_days[0])).days
+            interval = round(span / (len(recent_days) - 1), 1)
+        last_day = max(days)
+        last = days[last_day]
+        cells = per_ex_week.get(ex_id, {})
+        part = BODYPART_MAP.get(e["bodyPart"])
+        rows.append({
+            "id": ex_id,
+            "name": e["name"],
+            "part": part[0] if part else None,
+            "status": status,
+            "prE1rm": best["e1rm"], "prDate": best["date"],
+            "prWeightKg": best["weightKg"], "prReps": best["reps"],
+            "weeksSincePr": (this_monday - _monday(_pdate(best["date"]))).days // 7,
+            "recentBest": recent_best,
+            "delta": round(recent_best - before_best, 1)
+                     if recent_best is not None and before_best is not None else None,
+            "spark": [(cells.get(wi) or {}).get("e1rm")
+                      for wi in range(N_WEEKS - PROGRESS_SPARK_WEEKS, N_WEEKS)],
+            "recentDays": len(recent_days),
+            "intervalDays": interval,
+            "lastDate": last_day, "lastTopKg": last["top"], "lastTopReps": last["reps"],
+        })
+    rows.sort(key=lambda r: (PROGRESS_ORDER[r["status"]], -r["weeksSincePr"], r["name"]))
+    return rows
+
+
 class Backup:
     """BackupData JSON をそのまま保持し、索引を張るだけの薄いラッパー。"""
 
@@ -146,6 +230,7 @@ def build_data(data: dict, today: date | None = None) -> dict:
     calendar: dict = defaultdict(float)                    # 日付iso -> 総挙上量
     pr: dict = {}                                          # ex_id -> best set dict
     first_seen: dict = {}                                   # ex_id -> その種目を最初に記録した日(iso文字列)
+    ex_days: dict = defaultdict(dict)                      # ex_id -> 日付iso -> {"top", "reps", "e1rm"}(重量×回数の種目のみ)
 
     for s, w, e in bk.work_sets():
         d = _pdate(w["date"])
@@ -172,10 +257,12 @@ def build_data(data: dict, today: date | None = None) -> dict:
             if best is None or e1 > (best.get("e1rm") or -1):
                 pr[e["id"]] = {"weightKg": wkg, "reps": reps, "e1rm": e1,
                                "date": w["date"], "name": e["name"], "recordType": rt}
-            # 週トップセット: その週で最重量のセット
-            cur = per_ex_week[e["id"]].get(wi)
-            if wi is not None and (cur is None or wkg > cur["top"]):
-                per_ex_week[e["id"]][wi] = {"top": wkg, "reps": reps, "e1rm": e1}
+            # 週トップセット: その週で最重量のセット(同じ重量なら回数の多いほう)。
+            # 推定1RM はトップセットからの換算ではなく、その週の全セットで最も高い値にする。
+            # 自己ベスト(pr)と同じ物差しにそろえ、一覧表の自己ベストがグラフ上にも現れるようにするため。
+            if wi is not None:
+                _merge_best(per_ex_week[e["id"]], wi, wkg, reps, e1)
+            _merge_best(ex_days[e["id"]], w["date"], wkg, reps, e1)
         elif rt == "BODYWEIGHT_REPS" and reps:
             # 自重系の PR は「追加重量 → 回数」の大きいほうを採用。推定1RM は出さない(None)。
             best = pr.get(e["id"])
@@ -350,6 +437,8 @@ def build_data(data: dict, today: date | None = None) -> dict:
         "pr": sorted(_with_is_first(pr, first_seen), key=lambda x: (x["e1rm"] is not None, x["e1rm"] or 0),
                      reverse=True),
         "recent": recent,
+        "progress": _progress_rows(bk, ex_days, per_ex_week, pr, first_seen, anchor),
+        "progressWindowWeeks": PROGRESS_WINDOW_WEEKS,
         "anchor": anchor.isoformat(),
         "lifted": lifted,
         "aiPlan": ai,

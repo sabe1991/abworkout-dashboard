@@ -17,6 +17,8 @@
     --s4: #eda100; --s5: #e87ba4; --s6: #008300;
     --good: #006300;
     --good-bg: #e2efe2;
+    --warn: #9a4a06;
+    --warn-bg: #fbeadb;
     --accent: #2a78d6;
     --track: #d8d4ca;
     --cal0: #e7e4dc;
@@ -41,6 +43,8 @@
       --s4: #c98500; --s5: #d55181; --s6: #008300;
       --good: #0ca30c;
       --good-bg: #16331a;
+      --warn: #f0a35c;
+      --warn-bg: #3a2614;
       --accent: #3987e5;
       --track: #333331;
       --cal0: #262624;
@@ -65,6 +69,8 @@
     --s4: #c98500; --s5: #d55181; --s6: #008300;
     --good: #0ca30c;
     --good-bg: #16331a;
+    --warn: #f0a35c;
+    --warn-bg: #3a2614;
     --accent: #3987e5;
     --track: #333331;
     --cal0: #262624;
@@ -92,7 +98,7 @@
      独自の値を使わずこのどちらかに合わせること。CSS変数は @media の条件式の中では使えない
      ため、値は各 @media (max-width: …) にそのまま書く。
        560px … ラベル+値を横並びにしている部品を縦積みに切り替える基準(ヒーロー・直近のワーク
-               アウト・自己ベスト表など)
+               アウト・種目ごとの伸びなど)
        760px … 2カラムのグリッド(.grid-2 など)を1カラムに落とす基準
      新しい部品は、560px幅で内容が欠けたり数値が途中で折り返されたりしないかを必ず確認する。 */
 
@@ -232,6 +238,9 @@
   .chart-title { font-size: 14px; font-weight: 600; }
   .chart-sub { font-size: 11.5px; color: var(--muted); }
   /* 見出しの右側。折りたたみボタンをその右隣に置くため、余白の寄せ方は margin で決める */
+  /* 右側に操作部品(.head-tools)が無いカードでは、見出しブロックを残りの幅に収める。
+     説明文が長いと見出しブロックが幅いっぱいに広がり、折りたたみボタンが次の行へ押し出されるため。 */
+  .chart-head > div:first-child:nth-last-child(2) { flex: 1 1 0; min-width: 0; }
   .head-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-left: auto; }
 
   /* カードの折りたたみ。見出しの中には種目セレクタなどの操作部品があるので、
@@ -256,6 +265,9 @@
   .bg4 { background: var(--s4); } .bg5 { background: var(--s5); } .bg6 { background: var(--s6); }
   .ghost-btn { font: inherit; font-size: 11.5px; color: var(--ink-2); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 2px 9px; cursor: pointer; }
   .ghost-btn:hover { border-color: var(--axis); color: var(--ink); }
+  /* 種目セレクタは一番長い選択肢の幅まで広がるため上限を設ける(長い種目名が増えると見出しの
+     右側があふれ、折りたたみボタンが次の行へ落ちるため)。はみ出す名前は省略表示になる。 */
+  #exsel { max-width: 200px; text-overflow: ellipsis; }
   select.exsel { font: inherit; font-size: 13px; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 5px 10px; }
 
   /* ---------- insight callout ---------- */
@@ -301,21 +313,48 @@
   table.data th { text-align: left; color: var(--ink-2); font-weight: 600; font-size: 11.5px; border-bottom: 1px solid var(--axis); padding: 6px 10px 5px; white-space: nowrap; }
   table.data td { border-bottom: 1px solid var(--grid); padding: 5px 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   table.data td.num, table.data th.num { text-align: right; }
-  /* 自己ベスト表: 狭い画面では表(横方向に列)をやめ、1件=1カードの縦並びにする。
-     4列(種目・記録・推定1RM・達成日)を横に並べると幅が足りず、右端の「達成日」列が
-     画面外に隠れてしまうため。種目名だけ見出しとして残し、残りはラベル付きで1行ずつ積む。 */
+  /* ---------- 種目ごとの伸び(一覧表) ----------
+     1行=1つのボタン(押すと下の「重量の推移」がその種目に切り替わる)。表(table)ではなく
+     grid で組むのは、行全体をキーボードでも押せるボタンにするため。
+     狭い画面(560px以下)では列をやめ、上段に「種目名・状態」、下段に「折れ線・数値」を積む。 */
+  .prog-list { display: grid; }
+  .prog-row, .prog-headrow { display: grid; grid-template-columns: minmax(0, 1fr) 84px 76px 132px 92px;
+    grid-template-areas: "name spark delta pr status"; align-items: center; gap: 4px 12px; }
+  .prog-headrow { font-size: 11.5px; font-weight: 600; color: var(--ink-2); border-bottom: 1px solid var(--axis); padding: 0 8px 5px; }
+  .prog-row { font: inherit; font-size: 12.5px; color: var(--ink); text-align: left; background: none; border: none;
+    border-bottom: 1px solid var(--grid); padding: 7px 8px; cursor: pointer; width: 100%; font-variant-numeric: tabular-nums; }
+  .prog-row:last-child { border-bottom: none; }
+  .prog-row:hover { background: var(--surface-2); }
+  .prog-row[aria-current="true"] { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--accent); }
+  .prog-name { grid-area: name; min-width: 0; overflow-wrap: anywhere; }
+  .prog-spark { grid-area: spark; color: var(--s2); }
+  .prog-spark svg { display: block; }
+  .prog-delta { grid-area: delta; text-align: right; }
+  .prog-pr { grid-area: pr; text-align: right; color: var(--ink-2); }
+  .prog-pr small { color: var(--muted); font-size: 11px; margin-left: 4px; }
+  .prog-status { grid-area: status; justify-self: end; }
+  .prog-headrow .prog-delta, .prog-headrow .prog-pr { color: var(--ink-2); }
+  .st-chip { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 9px; white-space: nowrap; }
+  .st-up   { color: var(--good); background: var(--good-bg); }
+  .st-flat { color: var(--ink-2); background: var(--surface-2); }
+  .st-down { color: var(--warn); background: var(--warn-bg); }
+  .st-new  { color: var(--muted); border: 1px solid var(--border); }
+  .prog-row:hover .st-flat, .prog-row[aria-current="true"] .st-flat { background: var(--surface); }
   @media (max-width: 560px) {
-    table.pr-table thead { display: none; }
-    table.pr-table, table.pr-table tbody, table.pr-table tr { display: block; width: 100%; }
-    table.pr-table tr { border-bottom: 1px solid var(--grid); padding: 9px 0; }
-    table.pr-table tr:first-child { padding-top: 0; }
-    table.pr-table tr:last-child { border-bottom: none; }
-    table.pr-table td { display: flex; justify-content: space-between; gap: 12px;
-      border-bottom: none; padding: 2px 0; white-space: normal; }
-    table.pr-table td:first-child { font-weight: 700; color: var(--ink); padding-bottom: 4px; font-size: 13.5px; }
-    table.pr-table td.num { text-align: left; }
-    table.pr-table td:not(:first-child)::before { content: attr(data-label); color: var(--muted); font-weight: 600; }
+    .prog-headrow { display: none; }
+    .prog-row { grid-template-columns: 84px minmax(0, 1fr) auto; grid-template-areas: "name name status" "spark pr pr" "spark delta delta"; padding: 9px 4px; }
+    .prog-name { font-weight: 600; font-size: 13px; }
+    .prog-pr, .prog-delta { text-align: left; font-size: 11.5px; }
+    .prog-delta::before { content: "前4週比 "; color: var(--muted); }
+    .prog-pr::before { content: "自己ベスト "; color: var(--muted); }
   }
+  /* グラフ下のコメントに足す「判断材料」の行 */
+  .insight-more { display: block; margin-top: 4px; color: var(--ink-2); }
+
+  /* ---------- 部位バランス(直近4週の週平均セット数) ---------- */
+  .bal-legend { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); }
+  .bal-legend i { width: 16px; height: 9px; border-radius: 2px; background: var(--track); display: inline-block; opacity: 0.8; }
+  .bal-low { fill: var(--warn); font-weight: 700; }
 
   /* ---------- calendar ---------- */
   .cal-scroll { overflow-x: auto; padding-bottom: 4px; position: relative; }
@@ -417,21 +456,16 @@
     <div class="sec-head"><h2>成長の証拠</h2><span class="sec-note">強くなった量を追う</span></div>
 
     <div class="card">
+      <div class="chart-head"><div><div class="chart-title">種目ごとの伸び</div><div class="chart-sub" id="prog-sub"></div></div></div>
+      <div id="prog-body"></div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
       <div class="chart-head"><div><div class="chart-title">直近のワークアウト</div><div class="chart-sub">最新5件を表示</div></div></div>
       <div id="recent-body"></div>
     </div>
 
-    <div class="card" style="margin-top:14px">
-      <div class="chart-head"><div><div class="chart-title">最近更新した自己ベスト</div><div class="chart-sub" id="pr-sub"></div></div></div>
-      <div class="table-wrap show">
-        <table class="data pr-table">
-          <thead><tr><th>種目</th><th>記録</th><th class="num" title="Epley式(重量×(1+回数/30))による推定値。実測ではなく、特に回数の多いセットほど誤差が大きくなる目安です。">推定1RM</th><th>達成日</th></tr></thead>
-          <tbody id="pr-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:14px">
+    <div class="card" style="margin-top:14px" id="card-strength">
       <div class="chart-head">
         <div>
           <div class="chart-title"><span id="stitle-strength">重量</span>の推移(<span id="wtitle-strength">直近12ヶ月</span>)</div>
@@ -462,6 +496,16 @@
   <!-- ④ 積み上げ -->
   <section class="block" id="sec-stack">
     <div class="sec-head"><h2>積み上げ</h2><span class="sec-note">続けてきた量とバランス</span></div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">部位バランス(直近4週の週平均セット数)</div>
+          <div class="chart-sub">今週を含む直近4週 ・ ワークセットのみ ・ 目安は胸・背中・脚・肩が週10〜20セット、腕・体幹が週6〜12セット</div>
+        </div>
+        <div class="head-tools"><span class="bal-legend"><i></i>目安</span></div>
+      </div>
+      <div class="chart-box" id="chart-balance"></div>
+    </div>
     <div class="card" style="margin-bottom:14px">
       <div class="chart-head">
         <div>
@@ -516,7 +560,7 @@
 </div>
 
 <!-- ビルド時にこの下の window.__DATA__ が実データ(aggregate.build_data の出力)へ置き換わる。 -->
-<script id="__data__">window.__DATA__ = window.__DATA__ || {"weeks":[],"big3Ids":{},"big3Series":[],"big3Fresh":[],"perExercise":{},"exerciseNames":{},"volumeWeek":[],"monthlyLabels":[],"monthlyRows":[],"partOrder":[],"partLabel":{},"calendar":{},"weightSeries":[],"fatSeries":[],"goal":{},"pr":[],"recent":[],"anchor":null,"lifted":null,"aiPlan":null};</script>
+<script id="__data__">window.__DATA__ = window.__DATA__ || {"weeks":[],"big3Ids":{},"big3Series":[],"big3Fresh":[],"perExercise":{},"exerciseNames":{},"volumeWeek":[],"monthlyLabels":[],"monthlyRows":[],"partOrder":[],"partLabel":{},"calendar":{},"weightSeries":[],"fatSeries":[],"goal":{},"pr":[],"recent":[],"progress":[],"progressWindowWeeks":4,"anchor":null,"lifted":null,"aiPlan":null};</script>
 <script>
 (() => {
   "use strict";
@@ -547,11 +591,11 @@
       return { name: "BIG3", metric: "推定1RM合計", top: null, e1rm: (DATA.big3Series || []).slice(),
                fresh: (DATA.big3Fresh || []).slice() };
     }
-    const k = SEL2KEY[selKey] || selKey;
-    const exId = DATA.big3Ids[k];
+    // "ex:<種目ID>" は「種目ごとの伸び」の一覧表から選んだ任意の種目(BIG3 以外も含む)
+    const exId = selKey.startsWith("ex:") ? selKey.slice(3) : DATA.big3Ids[SEL2KEY[selKey] || selKey];
     const name = (exId != null && DATA.exerciseNames[String(exId)]) || SEL_LABEL[selKey] || selKey;
     const cells = (exId != null && DATA.perExercise[String(exId)]) || new Array(N_WEEKS).fill(null);
-    return { name, metric: "推定1RM",
+    return { name, metric: "推定1RM", exId: exId != null ? String(exId) : null,
              top: cells.map((c) => (c ? c.top : null)), e1rm: cells.map((c) => (c ? c.e1rm : null)) };
   }
 
@@ -1166,44 +1210,160 @@
     });
   }
 
-  // ---- 自己ベスト(PR)一覧 ----
-  const PR_MONTHS = 3;  // 対象期間(この値を変えれば絞り込みの長さを変えられる)
-  const PR_MAX = 10;    // 表示する最大件数
-  function renderPR() {
-    const tb = $("#pr-tbody"); tb.textContent = "";
-    // 基準日は anchor(通常は今日。データ側で「今日と最新記録日の遅いほう」にしてある)。
-    // 日付は "YYYY-MM-DD" 形式なので、文字列のまま大小を比べれば日付の前後と一致する。
-    const [ay, am, ad] = (DATA.anchor || fmtYMD(new Date())).split("-").map(Number);
-    const since = fmtYMD(new Date(ay, am - 1 - PR_MONTHS, ad));
-    // isFirst(その種目を初めて記録した日=まだ更新していない)は「更新」ではないので除外する
-    const inPeriod = (DATA.pr || []).filter((p) => p.date && p.date >= since && !p.isFirst)
-      // 達成日の新しい順。元の配列は推定1RM の高い順に並んでおり、JS の並べ替えは
-      // 同じ値どうしの順番を保つ(安定ソート)ので、同じ日なら重い記録が上に来る。
-      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-    const rows = inPeriod.slice(0, PR_MAX);
-    const hidden = inPeriod.length - rows.length;
-    $("#pr-sub").textContent = `直近${PR_MONTHS}ヶ月に更新したぶんを、達成日の新しい順に最大${PR_MAX}件`
-      + (hidden > 0 ? `(この期間にほか${hidden}件)` : "");
+  // ---- 種目ごとの伸び(一覧表) ----
+  // 集計(aggregate._progress_rows)で状態の判定・並べ替えまで済ませてあるので、ここでは描くだけ。
+  const PROG_WIN = DATA.progressWindowWeeks || 4;
+  const PROG_STATUS = {
+    down: { label: "下降", cls: "st-down" },
+    flat: { label: "横ばい", cls: "st-flat" },
+    up:   { label: "伸び", cls: "st-up" },
+    new:  { label: "記録開始", cls: "st-new" },
+  };
+  const progById = {};
+  (DATA.progress || []).forEach((r) => { progById[String(r.id)] = r; });
+  // 種目ID → 種目セレクタの値。BIG3 の種目は既存の選択肢(bench など)を使い、それ以外は "ex:<ID>"。
+  const BIG3_SEL = { bench: "bench", squat: "squat", dead: "deadlift" };
+  function selValueFor(exId) {
+    for (const k in DATA.big3Ids || {}) if (String(DATA.big3Ids[k]) === String(exId) && BIG3_SEL[k]) return BIG3_SEL[k];
+    return "ex:" + exId;
+  }
+  // 部位の週あたり目安セット数(部位バランスのグラフと、判断材料の両方で使う)
+  const PART_TARGET = { chest: [10, 20], back: [10, 20], legs: [10, 20], sh: [10, 20], arms: [6, 12], core: [6, 12] };
+  function partWeeklyAvg(key) {
+    const recent = (volume || []).slice(-PROG_WIN);
+    if (!recent.length) return 0;
+    return Math.round((recent.reduce((a, w) => a + (w[key] || 0), 0) / recent.length) * 10) / 10;
+  }
+
+  function sparkline(values) {
+    const W = 84, H = 22, pad = 3;
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, "aria-hidden": "true" }, null);
+    const pts = []; values.forEach((v, i) => { if (v != null) pts.push([i, v]); });
+    if (!pts.length) return svg;
+    const vs = pts.map((p) => p[1]), lo = Math.min(...vs), hi = Math.max(...vs);
+    const X = (i) => pad + (i * (W - 2 * pad)) / Math.max(1, values.length - 1);
+    const Y = (v) => (hi === lo ? H / 2 : pad + (1 - (v - lo) / (hi - lo)) * (H - 2 * pad));
+    // 記録の無い週はまたいでつなぐ(12週の形をひと目で見るための図なので、途切れさせない)
+    el("path", { d: pts.map(([i, v], k) => `${k ? "L" : "M"}${X(i)},${Y(v)}`).join(""), fill: "none",
+      stroke: "currentColor", "stroke-width": 1.6, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    const [li, lv] = pts[pts.length - 1];
+    el("circle", { cx: X(li), cy: Y(lv), r: 2.4, fill: "currentColor" }, svg);
+    return svg;
+  }
+
+  function renderProgress() {
+    const host = $("#prog-body"); host.textContent = "";
+    const rows = DATA.progress || [];
+    const sub = $("#prog-sub");
+    sub.textContent = "直近8週に2回以上行った種目 ・ 推定1RMの自己ベストで判定 ・ 行を押すと下のグラフに表示";
+    sub.title = `伸び: ${PROG_WIN}週以内に自己ベストを更新 / 横ばい: ${PROG_WIN}週以上更新なし / `
+      + `下降: 直近${PROG_WIN}週の最高が自己ベストより5%以上低い / 記録開始: 直近${PROG_WIN}週に始めたばかり(今週を含む)`;
     if (!rows.length) {
-      const tr = document.createElement("tr"); const td = document.createElement("td");
-      td.colSpan = 4;
-      // 「1件も記録が無い」のと「期間内に更新が無かった」のは意味が違うので文言を分ける
-      td.textContent = (DATA.pr || []).length
-        ? `直近${PR_MONTHS}ヶ月に更新した自己ベストはありません。`
-        : "まだ記録がありません。";
-      td.style.color = "var(--muted)";
-      tr.appendChild(td); tb.appendChild(tr); return;
+      const p = document.createElement("div"); p.className = "log-note";
+      p.textContent = "対象の種目がまだありません(直近8週に2回以上記録した重量種目が載ります)。";
+      host.appendChild(p); return;
     }
-    rows.forEach((p) => {
-      const tr = document.createElement("tr");
-      const c1 = document.createElement("td"); c1.textContent = p.name;
-      const c2 = document.createElement("td"); c2.dataset.label = "記録";
-      c2.textContent = p.recordType === "BODYWEIGHT_REPS" ? `${p.reps}回(自重)` : `${trimN(p.weightKg)}kg × ${p.reps}`;
-      const c3 = document.createElement("td"); c3.className = "num pr-est"; c3.dataset.label = "推定1RM";
-      c3.textContent = p.e1rm != null ? `${p.e1rm}kg` : "—";
-      const c4 = document.createElement("td"); c4.dataset.label = "達成日"; c4.textContent = fmtMDW(p.date);
-      tr.appendChild(c1); tr.appendChild(c2); tr.appendChild(c3); tr.appendChild(c4);
-      tb.appendChild(tr);
+    const list = document.createElement("div"); list.className = "prog-list";
+    const head = document.createElement("div"); head.className = "prog-headrow";
+    [["prog-name", "種目"], ["prog-spark", "推移(12週)"], ["prog-delta", "前4週比"], ["prog-pr", "自己ベスト"], ["prog-status", "状態"]]
+      .forEach(([c, t]) => { const s = document.createElement("span"); s.className = c; s.textContent = t; head.appendChild(s); });
+    head.querySelector(".prog-delta").title = `直近${PROG_WIN}週の最高推定1RMと、その前の${PROG_WIN}週の最高との差`;
+    head.querySelector(".prog-pr").title = "推定1RM(Epley式: 重量×(1+回数/30))の自己ベストと達成日。実測ではなく、回数の多いセットほど誤差が大きくなる目安です。";
+    list.appendChild(head);
+    rows.forEach((r) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "prog-row";
+      b.dataset.exid = String(r.id);
+      b.setAttribute("aria-controls", "chart-strength");
+      const nm = document.createElement("span"); nm.className = "prog-name"; nm.textContent = r.name;
+      const sp = document.createElement("span"); sp.className = "prog-spark"; sp.appendChild(sparkline(r.spark || []));
+      const dl = document.createElement("span"); dl.className = "prog-delta";
+      dl.textContent = r.delta == null ? "—" : `${r.delta > 0 ? "+" : ""}${trimN(r.delta)}kg`;
+      const pr = document.createElement("span"); pr.className = "prog-pr";
+      pr.textContent = `${trimN(r.prE1rm)}kg`;
+      const pd = document.createElement("small"); pd.textContent = fmtMD(parseYMD(r.prDate)); pr.appendChild(pd);
+      pr.title = `${trimN(r.prWeightKg)}kg × ${r.prReps}回(${r.prDate})`;
+      const st = document.createElement("span"); st.className = "prog-status";
+      const chip = document.createElement("span"); const meta = PROG_STATUS[r.status] || PROG_STATUS.flat;
+      chip.className = "st-chip " + meta.cls; chip.textContent = meta.label; st.appendChild(chip);
+      b.setAttribute("aria-label", `${r.name}: ${meta.label}、自己ベスト 推定${trimN(r.prE1rm)}kg。グラフに表示`);
+      [nm, sp, dl, pr, st].forEach((x) => b.appendChild(x));
+      b.addEventListener("click", () => selectExercise(r.id));
+      list.appendChild(b);
+    });
+    host.appendChild(list);
+    markProgressCurrent();
+  }
+  // 今グラフに出している種目の行に印を付ける
+  function markProgressCurrent() {
+    const cur = exSeries(state.exercise).exId;
+    document.querySelectorAll(".prog-row").forEach((b) => b.setAttribute("aria-current", String(b.dataset.exid === cur)));
+  }
+  function selectExercise(exId) {
+    const v = selValueFor(exId), sel = $("#exsel");
+    if (![...sel.options].some((o) => o.value === v)) {
+      const o = document.createElement("option"); o.value = v; o.textContent = DATA.exerciseNames[String(exId)] || v;
+      sel.appendChild(o);
+    }
+    sel.value = v; state.exercise = v;
+    // 折りたたまれていたら開く(閉じたままだと切り替えても見えないため)
+    const card = $("#card-strength");
+    if (card && card.classList.contains("collapsed")) { const t = card.querySelector(".card-toggle"); if (t) t.click(); }
+    renderAll();
+    if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  // 種目セレクタに「最近続けている種目」をまとめて足しておく(一覧表を経由せずにも選べるように)
+  function addProgressOptions() {
+    const rows = (DATA.progress || []).filter((r) => selValueFor(r.id).startsWith("ex:"));
+    if (!rows.length) return;
+    const g = document.createElement("optgroup"); g.label = "最近続けている種目";
+    rows.slice().sort((a, b) => a.name.localeCompare(b.name, "ja")).forEach((r) => {
+      const o = document.createElement("option"); o.value = "ex:" + r.id; o.textContent = r.name; g.appendChild(o);
+    });
+    $("#exsel").appendChild(g);
+  }
+
+  // 「重量の推移」のコメント欄に足す判断材料(横ばい・下降の種目だけ)。事実だけを並べ、提案はしない。
+  function progressFacts(exId) {
+    const r = exId != null ? progById[String(exId)] : null;
+    if (!r || (r.status !== "flat" && r.status !== "down")) return "";
+    const parts = [];
+    parts.push(`自己ベスト(推定${trimN(r.prE1rm)}kg・${fmtMD(parseYMD(r.prDate))})から${r.weeksSincePr}週更新なし。`);
+    parts.push(r.recentDays
+      ? `直近${PROG_WIN}週は${r.recentDays}回` + (r.intervalDays != null ? `(平均${trimN(r.intervalDays)}日おき)` : "")
+      : `直近${PROG_WIN}週は未実施`);
+    if (r.part && PART_TARGET[r.part]) {
+      const [lo, hi] = PART_TARGET[r.part];
+      parts.push(`${(DATA.partLabel || {})[r.part] || r.part}は週平均${trimN(partWeeklyAvg(r.part))}セット(目安${lo}〜${hi})`);
+    }
+    parts.push(`トップセットは直近${trimN(r.lastTopKg)}kg×${r.lastTopReps}・自己ベスト時${trimN(r.prWeightKg)}kg×${r.prReps}`);
+    return parts[0] + parts.slice(1).join(" ・ ");
+  }
+
+  // ---- 部位バランス(直近4週の週平均セット数と目安の帯) ----
+  function renderBalance() {
+    const box = $("#chart-balance"); box.textContent = "";
+    const W = Math.max(280, box.clientWidth || 900);
+    const rowH = 30, P = { l: 44, r: 92, t: 6, b: 22 };
+    const H = P.t + rowH * PARTS.length + P.b;
+    const vals = PARTS.map((p) => partWeeklyAvg(p.key));
+    const ticks = niceTicks(0, Math.max(22, ...vals), 4), xmax = ticks[ticks.length - 1];
+    const X = (v) => P.l + (v / xmax) * (W - P.l - P.r);
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img", "aria-label": "部位別の週平均セット数と目安" }, null);
+    box.appendChild(svg);
+    ticks.forEach((v) => {
+      el("line", { x1: X(v), x2: X(v), y1: P.t, y2: H - P.b, class: "gridline" }, svg);
+      el("text", { x: X(v), y: H - P.b + 15, "text-anchor": "middle", class: "ticktext" }, svg).textContent = v;
+    });
+    PARTS.forEach((p, i) => {
+      const y = P.t + rowH * i, cy = y + rowH / 2, v = vals[i], [lo, hi] = PART_TARGET[p.key];
+      el("rect", { x: X(lo), y: y + 4, width: X(hi) - X(lo), height: rowH - 8, rx: 3, fill: "var(--track)", opacity: 0.8 }, svg);
+      el("rect", { x: X(0), y: cy - 6, width: Math.max(v > 0 ? 2 : 0, X(v) - X(0)), height: 12, rx: 2, class: `fill${p.cls}` }, svg);
+      el("text", { x: P.l - 8, y: cy + 4, "text-anchor": "end", class: "ticktext" }, svg).textContent = p.label;
+      const low = v < lo;
+      const t = el("text", { x: X(v) + 6, y: cy + 4, class: "endlabel" + (low ? " bal-low" : "") }, svg);
+      t.textContent = trimN(v) + (low ? " 少なめ" : "");
+      const title = el("title", {}, svg); title.textContent = `${p.label}: 週平均 ${trimN(v)}セット(目安 ${lo}〜${hi})`;
+      t.appendChild(title);
     });
   }
 
@@ -1263,7 +1423,7 @@
 
   const STRENGTH_SUB = {
     big3: "ベンチプレス・スクワット・デッドリフトの推定1RM(1回だけ挙げられる最大重量の推定値)を足した値。各種目の直前の記録を持ち越して毎週の合計を出す。実線・塗りつぶしの点=その週に3種目すべて実施、破線・輪だけの点=一部を過去の記録で持ち越し",
-    each: "週ごとのトップセット(いちばん重いセット)と、そこから換算した推定1RM(実測ではなく、回数の多いセットほど誤差が大きくなる目安)",
+    each: "週ごとのトップセット(いちばん重いセット)と、その週のセットで最も高い推定1RM(実測ではなく、回数の多いセットほど誤差が大きくなる目安)",
   };
   // 期間切り替えがあるグラフ(重量の推移・からだ)の初期表示。直近の変化を見たい場面が多いので
   // 12ヶ月ではなく3ヶ月から始める。markup 側の aria-pressed="true" と必ずそろえること。
@@ -1314,8 +1474,11 @@
         txt.appendChild(document.createTextNode(`(現在 ${cur}kg)。${judge}`
           + (isTotal && !lastFresh ? " ※一部の種目は過去の記録を持ち越して算出(輪だけの点)。" : "")));
       }
+      const facts = isTotal ? "" : progressFacts(ex.exId);
+      if (facts) { const more = document.createElement("span"); more.className = "insight-more"; more.textContent = facts; txt.appendChild(more); }
       box.appendChild(txt);
     }
+    markProgressCurrent();
     if (isTotal) {
       buildTable("#table-strength", [{ label: "週" }, { label: "推定1RM合計", num: true }, { label: "内訳" }],
         ds.map((d, i) => [fmtMD(d) + "週", rm[i] == null ? "—" : rm[i] + "kg",
@@ -1329,6 +1492,7 @@
 
     renderBody(state.bodyWeeks);
 
+    safeRender("部位バランス", "#chart-balance", renderBalance);
     const mv = monthlyVolume();
     stackedBar("#chart-volume", mv.labels, mv.rows);
     buildTable("#table-volume", [{ label: "月" }].concat(PARTS.map((p) => ({ label: p.label, num: true })), [{ label: "計", num: true }]),
@@ -1481,7 +1645,7 @@
   }
   safeRender("単位の切り替え", null, setupEquivUnit);
   safeRender("ヒーロー", ".hero-main", renderHero);
-  safeRender("自己ベスト", null, renderPR);
+  safeRender("種目ごとの伸び", "#prog-body", () => { addProgressOptions(); renderProgress(); });
   safeRender("直近のワークアウト", null, renderRecent);
   safeRender("グラフ", null, renderAll);
 
